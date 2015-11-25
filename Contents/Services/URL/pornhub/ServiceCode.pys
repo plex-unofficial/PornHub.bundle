@@ -1,0 +1,62 @@
+RE_1080_VIDEO_URL =	Regex("var player_quality_1080p = '([^']+)'")
+RE_720_VIDEO_URL =	Regex("var player_quality_720p = '([^']+)'")
+RE_480_VIDEO_URL =	Regex("var player_quality_480p = '([^']+)'")
+RE_240_VIDEO_URL =	Regex("var player_quality_240p = '([^']+)'")
+
+def NormalizeURL(url):
+
+	return url
+
+def MetadataObjectForURL(url):
+
+	html =		HTML.ElementFromURL(url)
+
+	title =		html.xpath('//title/text()')[0].strip()
+	thumbnail =	html.xpath('//meta[@property="og:image"]/@content')[0].strip()
+	#tags =		html.xpath('//div[@id="media-tags-container"]/h4/a/text()')
+
+	return VideoClipObject(
+		title =			title,
+		summary =		title,
+		thumb =			Resource.ContentsOfURLWithFallback([thumbnail], fallback='icon-default.jpg'),
+		content_rating =	'X'
+		#tags =			tags
+	)
+
+def MediaObjectsForURL(url):
+
+	return [
+		MediaObject(
+			container =				Container.MP4,
+			video_codec =				VideoCodec.H264,
+			video_resolution =			'480',
+			audio_codec =				AudioCodec.AAC,
+			audio_channels =			2,
+			optimized_for_streaming =	True if Client.Product not in ['Plex Web'] else False,
+			parts = [
+				PartObject(
+					key =	Callback(PlayVideo, url=url)
+				)
+			]
+		)
+	]
+
+@indirect
+def PlayVideo(url):
+
+	data = HTTP.Request(url).content
+	video1080 =	RE_1080_VIDEO_URL.search(data)
+	video720 =		RE_720_VIDEO_URL.search(data)
+	video480 =		RE_480_VIDEO_URL.search(data)
+	video240 =		RE_240_VIDEO_URL.search(data)
+
+	if video1080:
+		return IndirectResponse(VideoClipObject, key=video1080.group(1))
+	elif video720:
+		return IndirectResponse(VideoClipObject, key=video720.group(1))
+	elif video480:
+		return IndirectResponse(VideoClipObject, key=video480.group(1))
+	elif video240:
+		return IndirectResponse(VideoClipObject, key=video240.group(1))
+	
+	raise Ex.MediaNotAvailable
