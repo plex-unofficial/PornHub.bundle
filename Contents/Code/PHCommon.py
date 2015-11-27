@@ -1,6 +1,7 @@
 import urllib
 import urlparse
 from collections import OrderedDict
+from PHLanguageEN import *
 
 ROUTE_PREFIX =			'/video/pornhub'
 
@@ -38,7 +39,7 @@ CHANNEL_VIDEOS_SORT_ORDERS = OrderedDict([
 ])
 
 @route(ROUTE_PREFIX + '/list')
-def ListVideos(title, url, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
+def ListVideos(title=PH_DEFAULT_LIST_VIDEOS_TITLE, url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	
 	# Create the object to contain all of the videos
 	oc = ObjectContainer(title2 = title)
@@ -47,6 +48,7 @@ def ListVideos(title, url, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	if (int(page) != 1):
 		url = addURLParameters(url, {'page':str(page)})
 	
+	# This could definitely be handled more gracefully. But it works for now
 	if ("/channels/" in url):
 		pageLimit =	MAX_VIDEOS_PER_CHANNEL_PAGE
 	elif ("/video/search" in url):
@@ -57,8 +59,6 @@ def ListVideos(title, url, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
 	
-	Log(HTML.StringFromElement(html))
-	
 	# Use xPath to extract a list of divs that contain videos
 	videos = html.xpath("//li[contains(@class,'videoblock')]")
 	
@@ -66,12 +66,8 @@ def ListVideos(title, url, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	if (len(videos) >= 120):
 		videos =	videos[0:119]
 	
-	Log ('There are ' + str(len(videos)) + ' videos')
-	
 	# Loop through the videos in the page
 	for video in videos:
-		
-		#Log (HTML.StringFromElement(video))
 		
 		# Get the link of the video
 		videoURL = video.xpath("./div/div/a/@href")[0]
@@ -82,7 +78,7 @@ def ListVideos(title, url, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 		
 		# Make sure the last step went smoothly (this is probably redundant but oh well)
 		if (videoURL.startswith(BASE_URL)):
-			# Get the video details
+			# Use xPath to extract video details
 			videoTitle =	video.xpath("./div/div/a/div[contains(@class, 'thumbnail-info-wrapper')]/span[@class='title']/a/text()")[0]
 			thumbnail =	video.xpath("./div/div/a/div[@class='img']/img/@data-mediumthumb")[0]
 			
@@ -130,34 +126,72 @@ def ListVideos(title, url, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	return oc
 
 @route(ROUTE_PREFIX + '/sort')
-def SortVideos(title, url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
+def SortVideos(title=PH_DEFAULT_SORT_VIDEOS_TITLE, url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
 	
-	# Create the object to contain all of the sorting options
-	oc = ObjectContainer(title2 = title)
-	
+	# If sorting channels, use a different dictionary of sort orders
 	if ("/channels/" in url):
 		sortOrders = CHANNEL_VIDEOS_SORT_ORDERS
+	
+	# Create a dictionary of menu items
+	sortVideosMenuItems = OrderedDict()
 	
 	# Add the sorting options
 	for sortTitle, urlParams in sortOrders.items():
 		
-		oc.add(DirectoryObject(
-			key =	Callback(ListVideos, title=sortTitle, url=addURLParameters(url, urlParams)),
-			title =	title + ' - ' + sortTitle
-		))
+		# Add a menu item for the category
+		sortVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':addURLParameters(url, urlParams)}}
 	
-	return oc
+	return GenerateMenu(title, sortVideosMenuItems)
 
 @route(ROUTE_PREFIX + '/search')
-def SearchVideos(query, title):
+def SearchVideos(query):
 	
 	# Format the query for use in PornHub's search
 	formattedQuery = formatStringForSearch(query, "+")
 	
 	try:
-		return ListVideos(title='Search Results for ' + query, url=PH_VIDEO_SEARCH_URL % formattedQuery)
+		return ListVideos(title='Search Results For ' + query, url=PH_VIDEO_SEARCH_URL % formattedQuery)
 	except:
 		return ObjectContainer(header='Search Results', message="No search results found", no_cache=True)
+
+def GenerateMenu(title, menuItems):
+	# Create the object to contain the menu items
+	oc = ObjectContainer(title2=title)
+	
+	# Loop through the menuItems dictionary
+	for menuTitle, menuData in menuItems.items():
+		# Create empty dictionaries to hold the arguments for the Directory Object and the Function
+		directoryObjectArgs =	{}
+		functionArgs =		{}
+		
+		# See if any Directory Object arguments are present in the menu data
+		if ('directoryObjectArgs' in menuData):
+			# Merge dictionaries
+			directoryObjectArgs.update(menuData['directoryObjectArgs'])
+		
+		# Check to see if the menu item is a search menu item
+		if ('search' in menuData and menuData['search'] == True):
+			directoryObject = InputDirectoryObject(title=menuTitle, **directoryObjectArgs)
+		# Check to see if the menu item is a next page item
+		elif ('nextPage' in menuData and menuData['nextPage'] == True):
+			directoryObject = NextPageObject(title=menuTitle, **directoryObjectArgs)
+		# Otherwise, use a basic Directory Object
+		else:
+			directoryObject = DirectoryObject(title=menuTitle, **directoryObjectArgs)
+			functionArgs['title'] = menuTitle
+		
+		# See if any Function arguments are present in the menu data
+		if ('functionArgs' in menuData):
+			# Merge dictionaries
+			functionArgs.update(menuData['functionArgs'])
+		
+		# Set the Directory Object key to the function from the menu data, passing along any additional function arguments
+		directoryObject.key =	Callback(menuData['function'], **functionArgs)
+		
+		# Add the Directory Object to the Object Container
+		oc.add(directoryObject)
+	
+	return oc
 
 # I stole this function from http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python. It works.
 def addURLParameters (url, params):
@@ -168,7 +202,7 @@ def addURLParameters (url, params):
 	urlQuery.update(params)
 	
 	# So... PornHub requires that it's query string parameters are set in the right order... for some reason. This piece of code handles that. It's retarded, but it has to be done
-	urlQueryOrder = ['c', 'channelSearch', 'search', 'o', 't', 'page']
+	urlQueryOrder = ['c', 'channelSearch', 'search', 'username', 'o', 't', 'page']
 	
 	urlQueryOrdered = OrderedDict()
 	
@@ -180,6 +214,7 @@ def addURLParameters (url, params):
 
 	return urlparse.urlunparse(urlParts)
 
+# I stole this function (and everything I did for search basically) from the RedTube Plex Plugin, this file specifically https://github.com/flownex/RedTube.bundle/blob/master/Contents/Code/PCbfSearch.py
 def formatStringForSearch(query, delimiter):
 	query = String.StripTags(str(query))
 	query = query.replace('%20',' ')

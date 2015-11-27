@@ -5,15 +5,15 @@ from PHPornStars import *
 from PHPlaylists import *
 from PHMembers import *
 
-NAME =		'PornHub'
+NAME =	'PornHub'
 
-ART =		'art-default.jpg'
-ICON =		'icon-default.jpg'
+ART =	'art-default.jpg'
+ICON =	'icon-default.jpg'
 
 def Start():
 	
 	# Set the defaults for Object Containers
-	#ObjectContainer.art =		R(ART)
+	ObjectContainer.art =		R(ART)
 	ObjectContainer.title1 =	NAME
 	
 	# Set the defaults of Directory Objects
@@ -28,43 +28,15 @@ def Start():
 @handler(ROUTE_PREFIX, NAME, thumb=ICON, art=ART)
 def MainMenu():
 	
-	# Create the object to contain the main menu options
-	oc = ObjectContainer()
+	# Create a dictionary of menu items
+	mainMenuItems = OrderedDict([
+		('Browse All Videos',	{'function':SortVideos}),
+		('Categories',			{'function':BrowseCategories}),
+		('Channels',			{'function':BrowseChannels}),
+		('Porn Stars',			{'function':BrowsePornStars}),
+		('Playlists',			{'function':BrowsePlaylists}),
+		('Members',			{'function':BrowseMembers}),
+		('Search',				{'function':SearchVideos, 'search':True, 'directoryObjectArgs':{'prompt':'Search for...','summary':'Enter Search Terms'}})
+	])
 	
-	# Directory Object for Browse All Videos
-	oc.add(DirectoryObject(
-		key =	Callback(SortVideos, title='Browse All Videos'),
-		title =	'Browse All Videos'
-	))
-	
-	oc.add(DirectoryObject(
-		key =	Callback(BrowseCategories, title='Categories'),
-		title =	'Categories'
-	))
-	
-	oc.add(DirectoryObject(
-		key =	Callback(BrowseChannels, title='Channels'),
-		title =	'Channels'
-	))
-	
-	oc.add(DirectoryObject(
-		key =	Callback(BrowsePornStars, title='Porn Stars'),
-		title =	'Porn Stars'
-	))
-	
-	oc.add(DirectoryObject(
-		key =	Callback(BrowsePlaylists, title='Playlists'),
-		title =	'Playlists'
-	))
-	
-	oc.add(DirectoryObject(
-		key =	Callback(BrowseMembers, title='Members'),
-		title =	'Members'
-	))
-	
-	oc.add(InputDirectoryObject(
-		key =	Callback(SearchVideos, title='Search'),
-		title =	'Search'
-	))
-	
-	return oc
+	return GenerateMenu(NAME, mainMenuItems)
