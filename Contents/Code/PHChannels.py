@@ -43,7 +43,7 @@ def ListChannels(title, url = PH_CHANNELS_URL, page=1):
 		channelThumbnail =	channel.xpath("./div[contains(@class,'description')]/div[contains(@class, 'avatar')]/a/img/@src")[0]
 		
 		# Add a menu item for the channel
-		listChannelsMenuItems[channelTitle] = {'function':SortVideos, 'functionArgs':{'url':channelURL + '/videos'}, 'directoryObjectArgs':{'thumb':channelThumbnail}}
+		listChannelsMenuItems[channelTitle] = {'function':BrowseVideos, 'functionArgs':{'url':channelURL + '/videos'}, 'directoryObjectArgs':{'thumb':channelThumbnail}}
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(channels) == MAX_CHANNELS_PER_PAGE):

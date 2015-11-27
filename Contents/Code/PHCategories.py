@@ -24,6 +24,6 @@ def BrowseCategories(title=PH_DEFAULT_BROWSE_CATEGORIES_TITLE, url = PH_CATEGORI
 		categoryThumbnail =	category.xpath("./a/img/@src")[0]
 		
 		# Add a menu item for the category
-		browseCategoriesMenuItems[categoryTitle] = {'function':SortVideos, 'functionArgs':{'url':categoryURL}, 'directoryObjectArgs':{'thumb':categoryThumbnail}}
+		browseCategoriesMenuItems[categoryTitle] = {'function':BrowseVideos, 'functionArgs':{'url':categoryURL}, 'directoryObjectArgs':{'thumb':categoryThumbnail}}
 	
 	return GenerateMenu(title, browseCategoriesMenuItems)

@@ -51,7 +51,7 @@ def ListPornStars(title, url = PH_PORNSTARS_URL, page=1):
 		pornStarThumbnail =	pornStar.xpath("./div/a/img/@src")[0]
 		
 		# Add a menu item for the porn star
-		listPornStarsMenuItems[pornStarName] = {'function':SortVideos, 'functionArgs':{'url':pornStarURL}, 'directoryObjectArgs':{'thumb':pornStarThumbnail}}
+		listPornStarsMenuItems[pornStarName] = {'function':BrowseVideos, 'functionArgs':{'url':pornStarURL}, 'directoryObjectArgs':{'thumb':pornStarThumbnail}}
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(pornStars) == MAX_PORNSTARS_PER_PAGE):

@@ -38,7 +38,25 @@ CHANNEL_VIDEOS_SORT_ORDERS = OrderedDict([
 	('Top Rated',					{'o':'ra'})
 ])
 
-@route(ROUTE_PREFIX + '/list')
+@route(ROUTE_PREFIX + '/videos/browse')
+def BrowseVideos(title=PH_DEFAULT_BROWSE_VIDEOS_TITLE, url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
+	
+	# If sorting channels, use a different dictionary of sort orders
+	if ("/channels/" in url):
+		sortOrders = CHANNEL_VIDEOS_SORT_ORDERS
+	
+	# Create a dictionary of menu items
+	browseVideosMenuItems = OrderedDict()
+	
+	# Add the sorting options
+	for sortTitle, urlParams in sortOrders.items():
+		
+		# Add a menu item for the category
+		browseVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':addURLParameters(url, urlParams)}}
+	
+	return GenerateMenu(title, browseVideosMenuItems)
+
+@route(ROUTE_PREFIX + '/videos/list')
 def ListVideos(title=PH_DEFAULT_LIST_VIDEOS_TITLE, url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	
 	# Create the object to contain all of the videos
@@ -124,24 +142,6 @@ def ListVideos(title=PH_DEFAULT_LIST_VIDEOS_TITLE, url=PH_VIDEO_URL, page=1, pag
 		))
 
 	return oc
-
-@route(ROUTE_PREFIX + '/sort')
-def SortVideos(title=PH_DEFAULT_SORT_VIDEOS_TITLE, url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
-	
-	# If sorting channels, use a different dictionary of sort orders
-	if ("/channels/" in url):
-		sortOrders = CHANNEL_VIDEOS_SORT_ORDERS
-	
-	# Create a dictionary of menu items
-	sortVideosMenuItems = OrderedDict()
-	
-	# Add the sorting options
-	for sortTitle, urlParams in sortOrders.items():
-		
-		# Add a menu item for the category
-		sortVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':addURLParameters(url, urlParams)}}
-	
-	return GenerateMenu(title, sortVideosMenuItems)
 
 @route(ROUTE_PREFIX + '/search')
 def SearchVideos(query):

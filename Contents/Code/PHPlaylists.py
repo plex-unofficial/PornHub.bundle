@@ -49,7 +49,7 @@ def ListPlaylists(title, url = PH_PLAYLISTS_URL, page=1):
 		playlistThumbnail =	playlist.xpath("./div/div[contains(@class, 'linkWrapper')]/img[contains(@class, 'largeThumb')]/@data-mediumthumb")[0]
 		
 		# Add a menu item for the playlist
-		listPlaylistsMenuItems[playlistTitle] = {'function':SortVideos, 'functionArgs':{'url':playlistURL}, 'directoryObjectArgs':{'thumb':playlistThumbnail}}
+		listPlaylistsMenuItems[playlistTitle] = {'function':BrowseVideos, 'functionArgs':{'url':playlistURL}, 'directoryObjectArgs':{'thumb':playlistThumbnail}}
 	
 	# There is a slight change that this will break... If the number of playlists returned in total is divisible by MAX_PLAYLISTS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(playlists) == MAX_PLAYLISTS_PER_PAGE):

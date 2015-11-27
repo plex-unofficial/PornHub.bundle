@@ -30,7 +30,7 @@ def MainMenu():
 	
 	# Create a dictionary of menu items
 	mainMenuItems = OrderedDict([
-		('Browse All Videos',	{'function':SortVideos}),
+		('Browse All Videos',	{'function':BrowseVideos}),
 		('Categories',			{'function':BrowseCategories}),
 		('Channels',			{'function':BrowseChannels}),
 		('Porn Stars',			{'function':BrowsePornStars}),
