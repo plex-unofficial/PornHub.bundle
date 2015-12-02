@@ -1,7 +1,8 @@
-RE_1080_VIDEO_URL =	Regex("var player_quality_1080p = '([^']+)'")
-RE_720_VIDEO_URL =	Regex("var player_quality_720p = '([^']+)'")
-RE_480_VIDEO_URL =	Regex("var player_quality_480p = '([^']+)'")
-RE_240_VIDEO_URL =	Regex("var player_quality_240p = '([^']+)'")
+from collections import OrderedDict
+
+PH_POTENTIAL_RESOLUTIONS = ["1080", "720", "480", "240", "180"]
+
+PH_VIDEO_URL_REGEX = "var player_quality_%sp = '([^']+)'"
 
 def NormalizeURL(url):
 
@@ -23,40 +24,35 @@ def MetadataObjectForURL(url):
 		#tags =			tags
 	)
 
+@deferred
 def MediaObjectsForURL(url):
-
-	return [
-		MediaObject(
-			container =				Container.MP4,
-			video_codec =				VideoCodec.H264,
-			video_resolution =			'480',
-			audio_codec =				AudioCodec.AAC,
+	
+	availableResolutions =	OrderedDict([])
+	mediaObjects =		[]
+	
+	data =		HTTP.Request(url).content
+	
+	for resolution in PH_POTENTIAL_RESOLUTIONS:
+		video = Regex(PH_VIDEO_URL_REGEX % resolution).search(data)
+		
+		if video:
+			availableResolutions[resolution] = video.group(1)
+	
+	for resolution, videoURL in availableResolutions.items():
+		mediaObjects.append(MediaObject(
+			container =			Container.MP4,
+			video_codec =			VideoCodec.H264,
+			video_resolution =		resolution,
+			audio_codec =			AudioCodec.AAC,
 			audio_channels =			2,
 			optimized_for_streaming =	True if Client.Product not in ['Plex Web'] else False,
 			parts = [
 				PartObject(
-					key =	Callback(PlayVideo, url=url)
+					key =	videoURL
 				)
 			]
-		)
-	]
-
-@indirect
-def PlayVideo(url):
-
-	data = HTTP.Request(url).content
-	video1080 =	RE_1080_VIDEO_URL.search(data)
-	video720 =		RE_720_VIDEO_URL.search(data)
-	video480 =		RE_480_VIDEO_URL.search(data)
-	video240 =		RE_240_VIDEO_URL.search(data)
-
-	if video1080:
-		return IndirectResponse(VideoClipObject, key=video1080.group(1))
-	elif video720:
-		return IndirectResponse(VideoClipObject, key=video720.group(1))
-	elif video480:
-		return IndirectResponse(VideoClipObject, key=video480.group(1))
-	elif video240:
-		return IndirectResponse(VideoClipObject, key=video240.group(1))
+		))
+	
+	return mediaObjects
 	
 	raise Ex.MediaNotAvailable
