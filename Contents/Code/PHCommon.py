@@ -9,9 +9,10 @@ BASE_URL =			'http://pornhub.com'
 PH_VIDEO_URL =			BASE_URL + '/video'
 PH_VIDEO_SEARCH_URL =	PH_VIDEO_URL + '/search?search=%s'
 
-MAX_VIDEOS_PER_PAGE =			28
+MAX_VIDEOS_PER_PAGE =			32
 MAX_VIDEOS_PER_SEARCH_PAGE =		20
 MAX_VIDEOS_PER_CHANNEL_PAGE =	36
+MAX_VIDEOS_PER_PORNSTAR_PAGE =	26
 MAX_VIDEOS_PER_USER_PAGE =		48
 
 SORT_ORDERS = OrderedDict([
@@ -67,10 +68,12 @@ def ListVideos(title=PH_DEFAULT_LIST_VIDEOS_TITLE, url=PH_VIDEO_URL, page=1, pag
 		url = addURLParameters(url, {'page':str(page)})
 	
 	# This could definitely be handled more gracefully. But it works for now
-	if ("/channels/" in url):
-		pageLimit =	MAX_VIDEOS_PER_CHANNEL_PAGE
-	elif ("/video/search" in url):
+	if ("/video/search" in url):
 		pageLimit =	MAX_VIDEOS_PER_SEARCH_PAGE
+	elif ("/channels/" in url):
+		pageLimit =	MAX_VIDEOS_PER_CHANNEL_PAGE
+	elif ("/pornstar/" in url):
+		pageLimit =	MAX_VIDEOS_PER_PORNSTAR_PAGE
 	elif ("/users/" in url):
 		pageLimit =	MAX_VIDEOS_PER_USER_PAGE
 	
