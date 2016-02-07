@@ -6,7 +6,7 @@ PH_PORNSTARS_SEARCH_URL =	PH_PORNSTARS_URL + '/search?search=%s'
 MAX_PORNSTARS_PER_PAGE =	28
 
 @route(ROUTE_PREFIX + '/pornstars')
-def BrowsePornStars(title=PH_DEFAULT_BROWSE_PORN_STARS_TITLE):
+def BrowsePornStars(title=L("DefaultBrowsePornStarsTitle")):
 	
 	# Create a dictionary of menu items
 	browsePornStarsMenuItems = OrderedDict([

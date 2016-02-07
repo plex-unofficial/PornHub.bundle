@@ -1,7 +1,6 @@
 import urllib
 import urlparse
 from collections import OrderedDict
-from PHLanguageEN import *
 
 ROUTE_PREFIX =			'/video/pornhub'
 
@@ -40,7 +39,7 @@ CHANNEL_VIDEOS_SORT_ORDERS = OrderedDict([
 ])
 
 @route(ROUTE_PREFIX + '/videos/browse')
-def BrowseVideos(title=PH_DEFAULT_BROWSE_VIDEOS_TITLE, url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
+def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
 	
 	# If sorting channels, use a different dictionary of sort orders
 	if ("/channels/" in url):
@@ -58,7 +57,7 @@ def BrowseVideos(title=PH_DEFAULT_BROWSE_VIDEOS_TITLE, url = PH_VIDEO_URL, sortO
 	return GenerateMenu(title, browseVideosMenuItems)
 
 @route(ROUTE_PREFIX + '/videos/list')
-def ListVideos(title=PH_DEFAULT_LIST_VIDEOS_TITLE, url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
+def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
 	
 	# Create the object to contain all of the videos
 	oc = ObjectContainer(title2 = title)
@@ -157,9 +156,9 @@ def SearchVideos(query):
 	except:
 		return ObjectContainer(header='Search Results', message="No search results found", no_cache=True)
 
-def GenerateMenu(title, menuItems):
+def GenerateMenu(title, menuItems, no_cache=False):
 	# Create the object to contain the menu items
-	oc = ObjectContainer(title2=title)
+	oc = ObjectContainer(title2=title, no_cache=no_cache)
 	
 	# Loop through the menuItems dictionary
 	for menuTitle, menuData in menuItems.items():

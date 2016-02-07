@@ -5,10 +5,10 @@ from PHPornStars import *
 from PHPlaylists import *
 from PHMembers import *
 
-NAME =	'PornHub'
+NAME =	L("ChannelTitle")
 
-ART =	'art-default.jpg'
-ICON =	'icon-default.jpg'
+ART =	'art-' + Prefs["channelBackgroundArt"]
+ICON =	'icon-' + Prefs["channelIconArt"]
 
 def Start():
 	
@@ -19,11 +19,21 @@ def Start():
 	# Set the defaults of Directory Objects
 	DirectoryObject.thumb =	R(ICON)
 	
+	# Set the default language
+	Locale.DefaultLocale = "en"
+	
 	# Set the cache lifespan
 	HTTP.CacheTime = CACHE_1HOUR * 2
 	
 	# Set the user agent
 	HTTP.Headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0'
+
+def ValidatePrefs():
+	ART =	'art-' + Prefs["channelBackgroundArt"]
+	ObjectContainer.art =		R(ART)
+	
+	ICON =	'icon-' + Prefs["channelIconArt"]
+	DirectoryObject.thumb =	R(ICON)
 
 @handler(ROUTE_PREFIX, NAME, thumb=ICON, art=ART)
 def MainMenu():
@@ -39,4 +49,10 @@ def MainMenu():
 		('Search',				{'function':SearchVideos, 'search':True, 'directoryObjectArgs':{'prompt':'Search for...','summary':'Enter Search Terms'}})
 	])
 	
-	return GenerateMenu(NAME, mainMenuItems)
+	oc = GenerateMenu(NAME, mainMenuItems)
+	
+	oc.add(PrefsObject(
+		title="Preferences"
+	))
+	
+	return oc

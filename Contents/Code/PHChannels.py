@@ -5,7 +5,7 @@ PH_CHANNEL_SEARCH_URL =	PH_CHANNELS_URL + '/search?channelSearch=%s'
 MAX_CHANNELS_PER_PAGE =	36
 
 @route(ROUTE_PREFIX + '/channels')
-def BrowseChannels(title=PH_DEFAULT_BROWSE_CHANNELS_TITLE):
+def BrowseChannels(title="DefaultBrowseChannelsTitle"):
 	
 	# Create a dictionary of menu items
 	browseChannelsMenuItems = OrderedDict([

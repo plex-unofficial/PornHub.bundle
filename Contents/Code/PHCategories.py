@@ -4,7 +4,7 @@ PH_CATEGORIES_URL =				BASE_URL + '/categories'
 PH_CATEGORIES_ALPHABETICAL_URL =	PH_CATEGORIES_URL + '?o=al'
 
 @route(ROUTE_PREFIX + '/categories')
-def BrowseCategories(title=PH_DEFAULT_BROWSE_CATEGORIES_TITLE, url = PH_CATEGORIES_ALPHABETICAL_URL):
+def BrowseCategories(title=L("DefaultBrowseCategoriesTitle"), url = PH_CATEGORIES_ALPHABETICAL_URL):
 	
 	# Create a dictionary of menu items
 	browseCategoriesMenuItems = OrderedDict()

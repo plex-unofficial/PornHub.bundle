@@ -6,7 +6,7 @@ PH_SEARCH_MEMBERS_URL =		BASE_URL + '/user/search?username=%s'
 PH_MAX_MEMBERS_PER_PAGE =	42
 
 @route(ROUTE_PREFIX + '/members')
-def BrowseMembers(title=PH_DEFAULT_BROWSE_MEMBERS_TITLE, url=PH_DISCOVER_MEMBERS_URL):
+def BrowseMembers(title=L("DefaultBrowseMembersTitle"), url=PH_DISCOVER_MEMBERS_URL):
 	
 	# Create a dictionary of menu items
 	browseMembersMenuItems = OrderedDict([

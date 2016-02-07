@@ -6,7 +6,7 @@ PH_PLAYLIST_URL =			BASE_URL + '/playlist'
 MAX_PLAYLISTS_PER_PAGE =	36
 
 @route(ROUTE_PREFIX + '/playlists')
-def BrowsePlaylists(title=PH_DEFAULT_BROWSE_PLAYLISTS_TITLE):
+def BrowsePlaylists(title=L("DefaultBrowsePlaylistsTitle")):
 	
 	# Create a dictionary of menu items
 	browsePlaylistsMenuItems = OrderedDict([

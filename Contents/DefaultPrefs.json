@@ -1,0 +1,16 @@
+[
+	{
+		"id": "channelBackgroundArt",
+		"label": "Background Art",
+		"type": "enum",
+		"values": ["default.jpg", "original.png", "alternate-1.jpg", "alternate-2.jpg", "stealth.png"],
+		"default": "default.jpg"
+	},
+	{
+		"id": "channelIconArt",
+		"label": "Icon Art",
+		"type": "enum",
+		"values": ["default.png", "stealth.png"],
+		"default": "default.png"
+	}
+]
