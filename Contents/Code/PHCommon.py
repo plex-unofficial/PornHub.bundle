@@ -40,12 +40,22 @@ CHANNEL_VIDEOS_SORT_ORDERS = OrderedDict([
 	('Top Rated',					{'o':'ra'})
 ])
 
+PORNSTAR_VIDEOS_SORT_ORDERS = OrderedDict([
+	('Recently Featured',			{}),
+	('Most Viewed',					{'o':'mv'}),
+	('Top Rated',					{'o':'tr'}),
+	('Longest',					{'o':'lg'}),
+	('Newest',						{'o':'cm'})
+])
+
 @route(ROUTE_PREFIX + '/videos/browse')
 def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
 	
 	# If sorting channels, use a different dictionary of sort orders
 	if ("/channels/" in url):
 		sortOrders = CHANNEL_VIDEOS_SORT_ORDERS
+	elif ("/pornstar/" in url):
+		sortOrders = PORNSTAR_VIDEOS_SORT_ORDERS
 	
 	# Create a dictionary of menu items
 	browseVideosMenuItems = OrderedDict()
