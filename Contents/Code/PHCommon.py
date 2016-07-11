@@ -2,11 +2,13 @@ import urllib
 import urlparse
 from collections import OrderedDict
 
-ROUTE_PREFIX =			'/video/pornhub'
+ROUTE_PREFIX =				'/video/pornhub'
 
-BASE_URL =			'http://pornhub.com'
-PH_VIDEO_URL =			BASE_URL + '/video'
-PH_VIDEO_SEARCH_URL =	PH_VIDEO_URL + '/search?search=%s'
+BASE_URL =				'http://pornhub.com'
+PH_VIDEO_URL =				BASE_URL + '/video'
+PH_VIDEO_SEARCH_URL =		PH_VIDEO_URL + '/search?search=%s'
+
+PH_PORNSTARS_HOVER_URL =	BASE_URL + '/pornstar/hover?id=%s'
 
 MAX_VIDEOS_PER_PAGE =			32
 MAX_VIDEOS_PER_SEARCH_PAGE =		20
@@ -162,6 +164,24 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Add the Video Clip Object
 	oc.add(vco)
 	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of porn stars in the video
+	pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
+	
+	# Check how any porn stars are returned.
+	# If just one, then display a Directory Object pointing to the porn star
+	if (len(pornStars) == 1):
+		oc.add(GenerateVideoPornStarDirectoryObject(pornStars[0]))
+		
+	# If more than one, create a Directory Object to another menu where all porn stars will be listed
+	elif (len(pornStars) > 1):
+		oc.add(DirectoryObject(
+			key =	Callback(GenerateVideoPornStarMenu, url=url),
+			title =	"Porn Stars"
+		))
+	
 	return oc
 
 @route(ROUTE_PREFIX + '/search')
@@ -174,6 +194,40 @@ def SearchVideos(query):
 		return ListVideos(title='Search Results For ' + query, url=PH_VIDEO_SEARCH_URL % formattedQuery)
 	except:
 		return ObjectContainer(header='Search Results', message="No search results found", no_cache=True)
+
+@route(ROUTE_PREFIX + '/video/pornstars')
+def GenerateVideoPornStarMenu(url, title="Porn Stars"):
+	# Create the object to contain all of the porn stars in the video
+	oc = ObjectContainer(title2 = title)
+	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of porn stars in the video
+	pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
+	
+	if (len(pornStars) > 0):
+		for pornStar in pornStars:
+			oc.add(GenerateVideoPornStarDirectoryObject(pornStar))
+	
+	return oc
+
+# This function takes markup of a porn star from a video page and creates a Directory Object for it
+def GenerateVideoPornStarDirectoryObject(pornStarElement):
+	pornStarID =	pornStarElement.xpath("./@data-id")[0]
+	pornStarURL =	BASE_URL + pornStarElement.xpath("./@href")[0]
+	pornStarName =	pornStarElement.xpath("./text()")[0]
+	
+	# Fetch the thumbnail
+	pornStarHoverHTML = HTML.ElementFromURL(PH_PORNSTARS_HOVER_URL % pornStarID)
+	
+	pornStarThumbnail = pornStarHoverHTML.xpath("//div[@id='psBoxPictureContainer']/img/@src")[0]
+	
+	return DirectoryObject(
+		key =	Callback(BrowseVideos, url=pornStarURL, title=pornStarName),
+		title =	pornStarName,
+		thumb =	pornStarThumbnail
+	)
 
 def GenerateMenu(title, menuItems, no_cache=False):
 	# Create the object to contain the menu items
