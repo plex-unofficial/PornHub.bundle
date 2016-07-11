@@ -102,25 +102,21 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 			videoTitle =	video.xpath("./div/div/a/div[contains(@class, 'thumbnail-info-wrapper')]/span[@class='title']/a/text()")[0]
 			thumbnail =	video.xpath("./div/div/a/div[@class='img']/img/@data-mediumthumb")[0]
 			
-			# Create a Video Clip Object for the video
-			vco = VideoClipObject(
-				url =		videoURL,
-				title =	videoTitle,
-				thumb =	thumbnail
-			)
-			
 			# Get the duration of the video
 			durationString =	video.xpath("./div/div/a/div[@class='img']/div[@class='marker-overlays']/var[@class='duration']/text()")[0]
 			
 			# Split it into a list separated by colon
 			durationArray =	durationString.split(":")
 			
+			# Set a default duration of 0
+			duration = 0
+			
 			if (len(durationArray) == 2):
 				# Dealing with MM:SS
 				minutes =	int(durationArray[0])
 				seconds =	int(durationArray[1])
 				
-				vco.duration = (minutes*60 + seconds) * 1000
+				duration = (minutes*60 + seconds) * 1000
 				
 			elif (len(durationArray) == 3):
 				# Dealing with HH:MM:SS... PornHub doesn't do this, but I'll keep it as a backup anyways
@@ -128,13 +124,17 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 				minutes =	int(durationArray[1])
 				seconds =	int(durationArray[2])
 				
-				vco.duration = (hours*3600 + minutes * 60 + seconds) * 1000
+				duration = (hours*3600 + minutes * 60 + seconds) * 1000
 			else:
 				# WTF
 				pass
 			
-			# Add the Video Clip Object to the Object Container
-			oc.add(vco)
+			# Add a Directory Object for the video to the Object Container
+			oc.add(DirectoryObject(
+				key =	Callback(VideoMenu, url=videoURL, title=videoTitle, duration=duration),
+				title =	videoTitle,
+				thumb =	thumbnail
+			))
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(videos) == int(pageLimit)):
@@ -143,6 +143,25 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 			title =	'Next Page'
 		))
 
+	return oc
+
+@route(ROUTE_PREFIX + '/videos/menu')
+def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
+	# Create the object to contain all of the videos options
+	oc = ObjectContainer(title2 = title)
+	
+	# Create the Video Clip Object
+	vco =	URLService.MetadataObjectForURL(url)
+	
+	# As I am calling MetadataObjectForURL from the URL Service, it only returns the metadata, it doesn't contain the URL
+	vco.url =	url
+	
+	if (int(duration) > 0):
+		vco.duration = int(duration)
+	
+	# Add the Video Clip Object
+	oc.add(vco)
+	
 	return oc
 
 @route(ROUTE_PREFIX + '/search')
