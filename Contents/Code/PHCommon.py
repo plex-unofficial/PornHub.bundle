@@ -8,7 +8,9 @@ BASE_URL =				'http://pornhub.com'
 PH_VIDEO_URL =				BASE_URL + '/video'
 PH_VIDEO_SEARCH_URL =		PH_VIDEO_URL + '/search?search=%s'
 
-PH_PORNSTARS_HOVER_URL =	BASE_URL + '/pornstar/hover?id=%s'
+PH_PORNSTAR_HOVER_URL =		BASE_URL + '/pornstar/hover?id=%s'
+PH_CHANNEL_HOVER_URL =		BASE_URL + '/channel/hover?id=%s'
+PH_USER_HOVER_URL =		BASE_URL + '/user/hover?id=%s'
 
 MAX_VIDEOS_PER_PAGE =			32
 MAX_VIDEOS_PER_SEARCH_PAGE =		20
@@ -177,6 +179,33 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
 	
+	uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
+	
+	if (len(uploader) > 0):
+		uploaderLink =	uploader[0].xpath("./a")
+		
+		if (len(uploaderLink) > 0):
+			uploaderURL =	BASE_URL + uploaderLink[0].xpath("./@href")[0]
+			uploaderName =	uploaderLink[0].xpath("./text()")[0]
+			
+			uploaderType = uploader[0].xpath("./@data-type")[0]
+			
+			if (uploaderType == "channel"):
+				channelID =	uploader[0].xpath("./@data-channelid")[0]
+				
+				# Fetch the thumbnail
+				channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
+				
+				channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+				
+				oc.add(DirectoryObject(
+					key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
+					title =	uploaderName,
+					thumb =	channelThumbnail
+				))
+			elif (uploaderType == "user"):
+				pass
+	
 	# Use xPath to extract a list of porn stars in the video
 	pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
 	
@@ -229,7 +258,7 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 	pornStarName =	pornStarElement.xpath("./text()")[0]
 	
 	# Fetch the thumbnail
-	pornStarHoverHTML = HTML.ElementFromURL(PH_PORNSTARS_HOVER_URL % pornStarID)
+	pornStarHoverHTML = HTML.ElementFromURL(PH_PORNSTAR_HOVER_URL % pornStarID)
 	
 	pornStarThumbnail = pornStarHoverHTML.xpath("//div[@id='psBoxPictureContainer']/img/@src")[0]
 	
