@@ -179,17 +179,22 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
 	
+	# Use xPath to extract the uploader of the video
 	uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
 	
+	# Make sure one is returned
 	if (len(uploader) > 0):
+		# Get the link within
 		uploaderLink =	uploader[0].xpath("./a")
 		
+		# Make sure it exists
 		if (len(uploaderLink) > 0):
 			uploaderURL =	BASE_URL + uploaderLink[0].xpath("./@href")[0]
 			uploaderName =	uploaderLink[0].xpath("./text()")[0]
 			
 			uploaderType = uploader[0].xpath("./@data-type")[0]
 			
+			# Check to see if the video is listed under a channel or a user
 			if (uploaderType == "channel"):
 				channelID =	uploader[0].xpath("./@data-channelid")[0]
 				
