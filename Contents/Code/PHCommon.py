@@ -226,19 +226,29 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 			title =	"Porn Stars"
 		))
 	
-	# Add the Related Videos Directory Object
-	oc.add(DirectoryObject(
-		key =	Callback(RelatedVideos, url=url),
-		title =	"Related Videos"
-	))
+	# Use xPath to extract the related videos
+	relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+	
+	if (len(relatedVideos) > 0):
+		relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+		
+		# Add the Related Videos Directory Object
+		oc.add(DirectoryObject(
+			key =	Callback(RelatedVideos, url=url),
+			title =	"Related Videos",
+			thumb =	relatedVideosThumb
+		))
 	
 	# Fetch playlists containing the video (if any)
 	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
 	
 	if (len(playlists) > 0):
+		playlistsThumb =	playlists[0].xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
+		
 		oc.add(DirectoryObject(
 			key =	Callback(PlaylistsContainingVideo, url=url),
-			title =	"Playlists Containing Video"
+			title =	"Playlists Containing Video",
+			thumb =	playlistsThumb
 		))
 	
 	return oc
