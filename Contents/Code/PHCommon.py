@@ -226,10 +226,20 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 			title =	"Porn Stars"
 		))
 	
+	# Add the Related Videos Directory Object
 	oc.add(DirectoryObject(
 		key =	Callback(RelatedVideos, url=url),
 		title =	"Related Videos"
 	))
+	
+	# Fetch playlists containing the video (if any)
+	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
+	
+	if (len(playlists) > 0):
+		oc.add(DirectoryObject(
+			key =	Callback(PlaylistsContainingVideo, url=url),
+			title =	"Playlists Containing Video"
+		))
 	
 	return oc
 
@@ -299,6 +309,31 @@ def RelatedVideos(url, title="Related Videos"):
 			key =	Callback(VideoMenu, url=relatedVideoURL, title=relatedVideoTitle),
 			title =	relatedVideoTitle,
 			thumb =	relatedVideoThumb
+		))
+	
+	return oc
+
+@route(ROUTE_PREFIX + '/video/playlists')
+def PlaylistsContainingVideo(url, title="Playlists Containing Video"):
+	# Create the object to contain the playlists
+	oc = ObjectContainer(title2=title)
+	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract the playlists
+	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
+	
+	# Loop through playlists
+	for playlist in playlists:
+		playlistTitle =	playlist.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/text()")[0]
+		playlistURL =	BASE_URL + playlist.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/@href")[0]
+		playlistThumb =	playlist.xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
+		
+		oc.add(DirectoryObject(
+			key =	Callback(BrowseVideos, url=playlistURL, title=playlistTitle),
+			title =	playlistTitle,
+			thumb =	playlistThumb
 		))
 	
 	return oc
