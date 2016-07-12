@@ -226,6 +226,11 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 			title =	"Porn Stars"
 		))
 	
+	oc.add(DirectoryObject(
+		key =	Callback(RelatedVideos, url=url),
+		title =	"Related Videos"
+	))
+	
 	return oc
 
 @route(ROUTE_PREFIX + '/search')
@@ -272,6 +277,31 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 		title =	pornStarName,
 		thumb =	pornStarThumbnail
 	)
+
+@route(ROUTE_PREFIX + '/video/related')
+def RelatedVideos(url, title="Related Videos"):
+	# Create the object to contain the related videos
+	oc = ObjectContainer(title2=title)
+	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract the related videos
+	relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+	
+	# Loop through related videos
+	for relatedVideo in relatedVideos:
+		relatedVideoTitle =	relatedVideo.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/text()")[0]
+		relatedVideoURL =	BASE_URL + relatedVideo.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0]
+		relatedVideoThumb =	relatedVideo.xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+		
+		oc.add(DirectoryObject(
+			key =	Callback(VideoMenu, url=relatedVideoURL, title=relatedVideoTitle),
+			title =	relatedVideoTitle,
+			thumb =	relatedVideoThumb
+		))
+	
+	return oc
 
 def GenerateMenu(title, menuItems, no_cache=False):
 	# Create the object to contain the menu items
