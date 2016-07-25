@@ -171,7 +171,7 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 @route(ROUTE_PREFIX + '/videos/menu')
 def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Create the object to contain all of the videos options
-	oc = ObjectContainer(title2 = title)
+	oc = ObjectContainer(title2 = title, no_cache=True)
 	
 	# Create an empty object for video metadata
 	videoMetaData = {}
@@ -201,8 +201,9 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	if (videoMetaDataString):
 		# If found, convert the JSON string to an object
 		videoMetaData = json.loads(videoMetaDataString.group(1))
-	
-	if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
+		
+	# Check to see if Thumbnails are enabled in the video sub menu in the Preferences, and also if the Thumbnail metadata exists
+	if (Prefs["videoMenuShowThumbnails"] and videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
 		oc.add(PhotoAlbumObject(
 			key =		Callback(VideoThumbnails, url=url),
 			rating_key =	url + " - Thumbnails",
@@ -210,88 +211,100 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 			summary =		"Tiled thumbnails from this video"
 		))
 	
-	# Use xPath to extract the uploader of the video
-	uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
-	
-	# Make sure one is returned
-	if (len(uploader) > 0):
-		# Get the link within
-		uploaderLink =	uploader[0].xpath("./a")
+	# Check to see if Uploaders are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowUploader"]):
+		# Use xPath to extract the uploader of the video
+		uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
 		
-		# Make sure it exists
-		if (len(uploaderLink) > 0):
-			uploaderURL =	BASE_URL + uploaderLink[0].xpath("./@href")[0]
-			uploaderName =	uploaderLink[0].xpath("./text()")[0]
+		# Make sure one is returned
+		if (len(uploader) > 0):
+			# Get the link within
+			uploaderLink =	uploader[0].xpath("./a")
 			
-			uploaderType = uploader[0].xpath("./@data-type")[0]
+			# Make sure it exists
+			if (len(uploaderLink) > 0):
+				uploaderURL =	BASE_URL + uploaderLink[0].xpath("./@href")[0]
+				uploaderName =	uploaderLink[0].xpath("./text()")[0]
+				
+				uploaderType = uploader[0].xpath("./@data-type")[0]
+				
+				# Check to see if the video is listed under a channel or a user
+				if (uploaderType == "channel"):
+					channelID =	uploader[0].xpath("./@data-channelid")[0]
+					
+					# Fetch the thumbnail
+					channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
+					
+					channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+					
+					oc.add(DirectoryObject(
+						key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
+						title =	uploaderName,
+						summary =	"Channel this video appears in",
+						thumb =	channelThumbnail
+					))
+				elif (uploaderType == "user"):
+					pass
+	
+	# Check to see if Porn Stars are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowPornStars"]):
+		# Use xPath to extract a list of porn stars in the video
+		pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
+		
+		# Check how any porn stars are returned.
+		# If just one, then display a Directory Object pointing to the porn star
+		if (len(pornStars) == 1):
+			oc.add(GenerateVideoPornStarDirectoryObject(pornStars[0]))
 			
-			# Check to see if the video is listed under a channel or a user
-			if (uploaderType == "channel"):
-				channelID =	uploader[0].xpath("./@data-channelid")[0]
-				
-				# Fetch the thumbnail
-				channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
-				
-				channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
-				
-				oc.add(DirectoryObject(
-					key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
-					title =	uploaderName,
-					summary =	"Channel this video appears in",
-					thumb =	channelThumbnail
-				))
-			elif (uploaderType == "user"):
-				pass
+		# If more than one, create a Directory Object to another menu where all porn stars will be listed
+		elif (len(pornStars) > 1):
+			oc.add(DirectoryObject(
+				key =	Callback(GenerateVideoPornStarMenu, url=url),
+				title =	"Porn Stars",
+				summary =	"Porn Stars that appear in this video"
+			))
 	
-	# Use xPath to extract a list of porn stars in the video
-	pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
 	
-	# Check how any porn stars are returned.
-	# If just one, then display a Directory Object pointing to the porn star
-	if (len(pornStars) == 1):
-		oc.add(GenerateVideoPornStarDirectoryObject(pornStars[0]))
+	# Check to see if Related Videos are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowRelatedVideos"]):
+		# Use xPath to extract the related videos
+		relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
 		
-	# If more than one, create a Directory Object to another menu where all porn stars will be listed
-	elif (len(pornStars) > 1):
-		oc.add(DirectoryObject(
-			key =	Callback(GenerateVideoPornStarMenu, url=url),
-			title =	"Porn Stars",
-			summary =	"Porn Stars that appear in this video"
-		))
+		if (len(relatedVideos) > 0):
+			relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+			
+			# Add the Related Videos Directory Object
+			oc.add(DirectoryObject(
+				key =	Callback(RelatedVideos, url=url),
+				title =	"Related Videos",
+				summary =	"Videos related to this video",
+				thumb =	relatedVideosThumb
+			))
 	
-	# Use xPath to extract the related videos
-	relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
 	
-	if (len(relatedVideos) > 0):
-		relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+	# Check to see if Playlists are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowPlaylists"]):
+		# Fetch playlists containing the video (if any)
+		playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
 		
-		# Add the Related Videos Directory Object
-		oc.add(DirectoryObject(
-			key =	Callback(RelatedVideos, url=url),
-			title =	"Related Videos",
-			summary =	"Videos related to this video",
-			thumb =	relatedVideosThumb
-		))
+		if (len(playlists) > 0):
+			playlistsThumb =	playlists[0].xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
+			
+			oc.add(DirectoryObject(
+				key =	Callback(PlaylistsContainingVideo, url=url),
+				title =	"Playlists",
+				summary =	"Playlists that contain this video",
+				thumb =	playlistsThumb
+			))
 	
-	# Fetch playlists containing the video (if any)
-	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
-	
-	if (len(playlists) > 0):
-		playlistsThumb =	playlists[0].xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
-		
-		oc.add(DirectoryObject(
-			key =	Callback(PlaylistsContainingVideo, url=url),
-			title =	"Playlists",
-			summary =	"Playlists that contain this video",
-			thumb =	playlistsThumb
-		))
-	
-	if (videoMetaData["actionTags"]):
-		oc.add(DirectoryObject(
-			key =	Callback(VideoActions, url=url),
-			title =	"Action",
-			summary =	"Timestamps of when actions (e.g. different positions) happen in this video"
-		))
+	# Check to see if Action is enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowAction"]):
+		if (videoMetaData["actionTags"]):
+			oc.add(DirectoryObject(
+				key =	Callback(VideoActions, url=url),
+				title =	"Action",
+				summary =	"Timestamps of when actions (e.g. different positions) happen in this video"
+			))
 	
 	return oc
 
