@@ -3,6 +3,7 @@ from PHCommon import *
 PH_DISCOVER_MEMBERS_URL =	BASE_URL + '/user/discover'
 PH_SEARCH_MEMBERS_URL =		BASE_URL + '/user/search?username=%s'
 
+# Only the Members search results page has 42 results. The other Member pages have 48 results, but don't feature pagination
 PH_MAX_MEMBERS_PER_PAGE =			42
 PH_MAX_MEMBER_CHANNELS_PER_PAGE =	8
 
@@ -79,6 +80,11 @@ def SearchMembers(query):
 @route(ROUTE_PREFIX + '/members/menu')
 def MemberMenu(title, url, username):
 	
+	# Get the HTML of the Member's spash page, as well as their Video and Playlist pages
+	memberHTML =		HTML.ElementFromURL(url)
+	memberVideosHTML =	HTML.ElementFromURL(url + '/videos')
+	memberPlaylistsHTML =	HTML.ElementFromURL(url + '/playlists')
+	
 	# Create a dictionary of menu items
 	memberMenuItems = OrderedDict([
 		('Channels',			{'function':MemberChannels,			'functionArgs':{'title':username + "'s Channels",			'url':url + '/channels'}}),
@@ -89,6 +95,47 @@ def MemberMenu(title, url, username):
 		('Public Playlists',		{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Public Playlists",	'url':url + '/playlists/public'}}),
 		('Favorite Playlists',	{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Favorite Playlists",	'url':url + '/playlists/favorites'}})
 	])
+	
+	# This dictionary will hold the conditons on which we want to display Member menu options
+	memberMenuChecks = {
+		"Channels": {
+			"xpath":		"//div[contains(@class,'channelSubWidgetContainer')]/ul/li[contains(@class,'channelSubChannelWig')]",
+			"htmlElement":	memberHTML
+		},
+		"Subscribed Channels": {
+			"xpath":		"//div[contains(@class,'userWidgetContainer')]/ul/li[contains(@class,'userChannelWig')]",
+			"htmlElement":	memberHTML
+		},
+		"Public Videos": {
+			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']",
+			"htmlElement":	memberVideosHTML
+		},
+		"Favorite Videos": {
+			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']",
+			"htmlElement":	memberVideosHTML
+		},
+		"Watched Videos": {
+			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Watched']",
+			"htmlElement":	memberVideosHTML
+		},
+		"Public Playlists": {
+			"xpath":		"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']",
+			"htmlElement":	memberPlaylistsHTML
+		},
+		"Favorite Playlists": {
+			"xpath":		"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']",
+			"htmlElement":	memberPlaylistsHTML
+		}
+	}
+	
+	# Loop through Member menu option conditons
+	for memberMenuCheck in memberMenuChecks:
+		# Attempt to get the element from the page
+		elements = memberMenuChecks[memberMenuCheck]["htmlElement"].xpath(memberMenuChecks[memberMenuCheck]["xpath"])
+		
+		if (len(elements) == 0):
+			# If no elements are found, do not display the Member menu option
+			del memberMenuItems[memberMenuCheck]
 	
 	return GenerateMenu(title, memberMenuItems)
 
