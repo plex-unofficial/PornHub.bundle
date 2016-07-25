@@ -155,7 +155,8 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 			oc.add(DirectoryObject(
 				key =	Callback(VideoMenu, url=videoURL, title=videoTitle, duration=duration),
 				title =	videoTitle,
-				thumb =	thumbnail
+				thumb =	thumbnail,
+				duration =	duration
 			))
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
