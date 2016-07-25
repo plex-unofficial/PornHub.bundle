@@ -182,6 +182,9 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# As I am calling MetadataObjectForURL from the URL Service, it only returns the metadata, it doesn't contain the URL
 	vco.url =	url
 	
+	# Overide the title
+	vco.title =	"Play Video"
+	
 	if (int(duration) > 0):
 		vco.duration = int(duration)
 	
@@ -203,7 +206,8 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 		oc.add(PhotoAlbumObject(
 			key =		Callback(VideoThumbnails, url=url),
 			rating_key =	url + " - Thumbnails",
-			title =		"Thumbnails"
+			title =		"Thumbnails",
+			summary =		"Tiled thumbnails from this video"
 		))
 	
 	# Use xPath to extract the uploader of the video
@@ -233,6 +237,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 				oc.add(DirectoryObject(
 					key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
 					title =	uploaderName,
+					summary =	"Channel this video appears in",
 					thumb =	channelThumbnail
 				))
 			elif (uploaderType == "user"):
@@ -250,7 +255,8 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	elif (len(pornStars) > 1):
 		oc.add(DirectoryObject(
 			key =	Callback(GenerateVideoPornStarMenu, url=url),
-			title =	"Porn Stars"
+			title =	"Porn Stars",
+			summary =	"Porn Stars that appear in this video"
 		))
 	
 	# Use xPath to extract the related videos
@@ -263,6 +269,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 		oc.add(DirectoryObject(
 			key =	Callback(RelatedVideos, url=url),
 			title =	"Related Videos",
+			summary =	"Videos related to this video",
 			thumb =	relatedVideosThumb
 		))
 	
@@ -274,14 +281,16 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 		
 		oc.add(DirectoryObject(
 			key =	Callback(PlaylistsContainingVideo, url=url),
-			title =	"Playlists Containing Video",
+			title =	"Playlists",
+			summary =	"Playlists that contain this video",
 			thumb =	playlistsThumb
 		))
 	
 	if (videoMetaData["actionTags"]):
 		oc.add(DirectoryObject(
 			key =	Callback(VideoActions, url=url),
-			title =	"Action"
+			title =	"Action",
+			summary =	"Timestamps of when actions (e.g. different positions) happen in this video"
 		))
 	
 	return oc
@@ -328,6 +337,7 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 	return DirectoryObject(
 		key =	Callback(BrowseVideos, url=pornStarURL, title=pornStarName),
 		title =	pornStarName,
+		summary =	"Porn Star appearing in this video",
 		thumb =	pornStarThumbnail
 	)
 
@@ -386,6 +396,7 @@ def RelatedVideos(url, title="Related Videos"):
 		oc.add(DirectoryObject(
 			key =	Callback(VideoMenu, url=relatedVideoURL, title=relatedVideoTitle),
 			title =	relatedVideoTitle,
+			summary =	relatedVideoTitle,
 			thumb =	relatedVideoThumb
 		))
 	
@@ -447,12 +458,12 @@ def VideoActions(url, title="Actions", header=None, message=None, replace_parent
 				
 				actionTimestamp =	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
 				actionTitle =		actionSegments[0]
-				
-				Log("Action: " + actionTimestamp + " - " + actionTitle)
+				actionSummary =		actionTitle + " starts at " + actionTimestamp
 				
 				oc.add(DirectoryObject(
-					key =	Callback(VideoActions, url=url, title=title, header=actionTitle, message=actionTitle + " starts at " + actionTimestamp, replace_parent=True),
-					title =	actionTimestamp + ": " + actionTitle
+					key =	Callback(VideoActions, url=url, title=title, header=actionTitle, message=actionSummary, replace_parent=True),
+					title =	actionTimestamp + ": " + actionTitle,
+					summary =	actionSummary
 				))
 	
 	return oc
