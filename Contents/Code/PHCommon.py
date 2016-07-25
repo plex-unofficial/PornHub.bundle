@@ -1,4 +1,5 @@
 import json
+import time
 import urllib
 import urlparse
 from collections import OrderedDict
@@ -167,6 +168,9 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Create the object to contain all of the videos options
 	oc = ObjectContainer(title2 = title)
 	
+	# Create an empty object for video metadata
+	videoMetaData = {}
+	
 	# Create the Video Clip Object
 	vco =	URLService.MetadataObjectForURL(url)
 	
@@ -189,13 +193,13 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	if (videoMetaDataString):
 		# If found, convert the JSON string to an object
 		videoMetaData = json.loads(videoMetaDataString.group(1))
-		
-		if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
-			oc.add(PhotoAlbumObject(
-				key =		Callback(VideoThumbnails, url=url),
-				rating_key =	url + " - Thumbnails",
-				title =		"Thumbnails"
-			))
+	
+	if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
+		oc.add(PhotoAlbumObject(
+			key =		Callback(VideoThumbnails, url=url),
+			rating_key =	url + " - Thumbnails",
+			title =		"Thumbnails"
+		))
 	
 	# Use xPath to extract the uploader of the video
 	uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
@@ -267,6 +271,12 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 			key =	Callback(PlaylistsContainingVideo, url=url),
 			title =	"Playlists Containing Video",
 			thumb =	playlistsThumb
+		))
+	
+	if (videoMetaData["actionTags"]):
+		oc.add(DirectoryObject(
+			key =	Callback(VideoActions, url=url),
+			title =	"Action"
 		))
 	
 	return oc
@@ -398,6 +408,47 @@ def PlaylistsContainingVideo(url, title="Playlists Containing Video"):
 			title =	playlistTitle,
 			thumb =	playlistThumb
 		))
+	
+	return oc
+
+@route(ROUTE_PREFIX + '/video/actions')
+def VideoActions(url, title="Actions", header=None, message=None, replace_parent=None):
+	# Create the object to contain the actions
+	oc = ObjectContainer(title2=title)
+	
+	if (header):
+		oc.header =		header
+	if (message):
+		oc.message =		message
+	if (replace_parent):
+		oc.replace_parent =	replace_parent
+	
+	# Get the HTML of the site
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+		
+		if (videoMetaData["actionTags"]):
+			actions = videoMetaData["actionTags"].split(",")
+			
+			for action in actions:
+				actionSegments =	action.split(":")
+				
+				actionTimestamp =	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
+				actionTitle =		actionSegments[0]
+				
+				Log("Action: " + actionTimestamp + " - " + actionTitle)
+				
+				oc.add(DirectoryObject(
+					key =	Callback(VideoActions, url=url, title=title, header=actionTitle, message=actionTitle + " starts at " + actionTimestamp, replace_parent=True),
+					title =	actionTimestamp + ": " + actionTitle
+				))
 	
 	return oc
 
