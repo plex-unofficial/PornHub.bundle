@@ -43,13 +43,16 @@ def ListPlaylists(title, url = PH_PLAYLISTS_URL, page=1):
 	# Loop through all playlists
 	for playlist in playlists:
 		
-		# Use xPath to extract playlist details
-		playlistTitle =		playlist.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/text()")[0]
-		playlistURL =		BASE_URL + playlist.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/@href")[0]
-		playlistThumbnail =	playlist.xpath("./div/div[contains(@class, 'linkWrapper')]/img[contains(@class, 'largeThumb')]/@data-mediumthumb")[0]
-		
-		# Add a menu item for the playlist
-		listPlaylistsMenuItems[playlistTitle] = {'function':BrowseVideos, 'functionArgs':{'url':playlistURL}, 'directoryObjectArgs':{'thumb':playlistThumbnail}}
+		# Make sure Playlist isn't empty
+		if (len(playlist.xpath(".//span[contains(@class,'playlist-videos')]/span[contains(@class,'number')]/span[text()='0']")) < 1):
+			
+			# Use xPath to extract playlist details
+			playlistTitle =		playlist.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/text()")[0]
+			playlistURL =		BASE_URL + playlist.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/@href")[0]
+			playlistThumbnail =	playlist.xpath("./div/div[contains(@class, 'linkWrapper')]/img[contains(@class, 'largeThumb')]/@data-mediumthumb")[0]
+			
+			# Add a menu item for the playlist
+			listPlaylistsMenuItems[playlistTitle] = {'function':BrowseVideos, 'functionArgs':{'url':playlistURL}, 'directoryObjectArgs':{'thumb':playlistThumbnail}}
 	
 	# There is a slight change that this will break... If the number of playlists returned in total is divisible by MAX_PLAYLISTS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(playlists) == MAX_PLAYLISTS_PER_PAGE):
