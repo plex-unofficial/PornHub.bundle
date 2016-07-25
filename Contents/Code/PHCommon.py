@@ -14,10 +14,11 @@ PH_PORNSTAR_HOVER_URL =		BASE_URL + '/pornstar/hover?id=%s'
 PH_CHANNEL_HOVER_URL =		BASE_URL + '/channel/hover?id=%s'
 PH_USER_HOVER_URL =		BASE_URL + '/user/hover?id=%s'
 
-MAX_VIDEOS_PER_PAGE =			32
+MAX_VIDEOS_PER_PAGE =			44
+MAX_VIDEOS_PER_PAGE_PAGE_ONE =	32
 MAX_VIDEOS_PER_SEARCH_PAGE =		20
 MAX_VIDEOS_PER_CHANNEL_PAGE =	36
-MAX_VIDEOS_PER_PORNSTAR_PAGE =	26
+MAX_VIDEOS_PER_PORNSTAR_PAGE =	36
 MAX_VIDEOS_PER_USER_PAGE =		48
 
 PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
@@ -75,7 +76,7 @@ def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOr
 	return GenerateMenu(title, browseVideosMenuItems)
 
 @route(ROUTE_PREFIX + '/videos/list')
-def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
+def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE_PAGE_ONE):
 	
 	# Create the object to contain all of the videos
 	oc = ObjectContainer(title2 = title)
@@ -93,6 +94,9 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 		pageLimit =	MAX_VIDEOS_PER_PORNSTAR_PAGE
 	elif ("/users/" in url):
 		pageLimit =	MAX_VIDEOS_PER_USER_PAGE
+	elif ("/video" in url and page > 1):
+		# In the Browse All Videos and Categories menus, they display MAX_VIDEOS_PER_PAGE_PAGE_ONE on page one, and MAX_VIDEOS_PER_PAGE from page two onward
+		pageLimit =	MAX_VIDEOS_PER_PAGE
 	
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
