@@ -1,3 +1,4 @@
+import json
 import urllib
 import urlparse
 from collections import OrderedDict
@@ -17,6 +18,8 @@ MAX_VIDEOS_PER_SEARCH_PAGE =		20
 MAX_VIDEOS_PER_CHANNEL_PAGE =	36
 MAX_VIDEOS_PER_PORNSTAR_PAGE =	26
 MAX_VIDEOS_PER_USER_PAGE =		48
+
+PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
 SORT_ORDERS = OrderedDict([
 	('Most Recent',					{'o':'mr'}),
@@ -177,7 +180,22 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	oc.add(vco)
 	
 	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+		
+		if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
+			oc.add(PhotoAlbumObject(
+				key =		Callback(VideoThumbnails, url=url),
+				rating_key =	url + " - Thumbnails",
+				title =		"Thumbnails"
+			))
 	
 	# Use xPath to extract the uploader of the video
 	uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
@@ -297,6 +315,41 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 		title =	pornStarName,
 		thumb =	pornStarThumbnail
 	)
+
+@route(ROUTE_PREFIX + '/video/thumbnails')
+def VideoThumbnails(url, title="Thumbnails"):
+	# Create the object to contain the thumbnails
+	oc = ObjectContainer(title2=title)
+	
+	# Get the HTML of the site
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+		
+		if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"] != False):
+			
+			videoThumbnailsCount =	Regex("/S{(\d+)}.jpg").search(videoMetaData["thumbs"]["urlPattern"])
+			
+			if (videoThumbnailsCount):
+				videoThumbnailsCountString = videoThumbnailsCount.group(1)
+				
+				for i in range(int(videoThumbnailsCountString) + 1):
+					thumbnailURL = videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg")
+					
+					oc.add(PhotoObject(
+						key =		thumbnailURL,
+						rating_key =	thumbnailURL,
+						title =		str(i),
+						thumb =		thumbnailURL
+					))
+	
+	return oc
 
 @route(ROUTE_PREFIX + '/video/related')
 def RelatedVideos(url, title="Related Videos"):
