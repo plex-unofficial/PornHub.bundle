@@ -3,7 +3,8 @@ from PHCommon import *
 PH_DISCOVER_MEMBERS_URL =	BASE_URL + '/user/discover'
 PH_SEARCH_MEMBERS_URL =		BASE_URL + '/user/search?username=%s'
 
-PH_MAX_MEMBERS_PER_PAGE =	42
+PH_MAX_MEMBERS_PER_PAGE =			42
+PH_MAX_MEMBER_CHANNELS_PER_PAGE =	8
 
 @route(ROUTE_PREFIX + '/members')
 def BrowseMembers(title=L("DefaultBrowseMembersTitle"), url=PH_DISCOVER_MEMBERS_URL):
@@ -80,11 +81,67 @@ def MemberMenu(title, url, username):
 	
 	# Create a dictionary of menu items
 	memberMenuItems = OrderedDict([
-		('Public Videos',		{'function':ListVideos,	'functionArgs':{'title':username + "'s Public Videos",		'url':url + '/videos/public'}}),
-		('Favorite Videos',		{'function':ListVideos,	'functionArgs':{'title':username + "'s Favorite Videos",		'url':url + '/videos/favorites'}}),
-		('Watched Videos',		{'function':ListVideos,	'functionArgs':{'title':username + "'s Watched Videos",		'url':url + '/videos/recent'}}),
-		('Public Playlists',		{'function':ListPlaylists,	'functionArgs':{'title':username + "'s Public Playlists",	'url':url + '/playlists/public'}}),
-		('Favorite Playlists',	{'function':ListPlaylists,	'functionArgs':{'title':username + "'s Favorite Playlists",	'url':url + '/playlists/favorites'}}),
+		('Channels',			{'function':MemberChannels,			'functionArgs':{'title':username + "'s Channels",			'url':url + '/channels'}}),
+		('Subscribed Channels',	{'function':MemberSubscribedChannels,	'functionArgs':{'title':username + "'s Subscribed Channels",	'url':url + '/channel_subscriptions'}}),
+		('Public Videos',		{'function':ListVideos,				'functionArgs':{'title':username + "'s Public Videos",		'url':url + '/videos/public'}}),
+		('Favorite Videos',		{'function':ListVideos,				'functionArgs':{'title':username + "'s Favorite Videos",		'url':url + '/videos/favorites'}}),
+		('Watched Videos',		{'function':ListVideos,				'functionArgs':{'title':username + "'s Watched Videos",		'url':url + '/videos/recent'}}),
+		('Public Playlists',		{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Public Playlists",	'url':url + '/playlists/public'}}),
+		('Favorite Playlists',	{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Favorite Playlists",	'url':url + '/playlists/favorites'}})
 	])
 	
 	return GenerateMenu(title, memberMenuItems)
+
+@route(ROUTE_PREFIX + '/members/channels')
+def MemberChannels(url, title="Member Channels", page=1):
+	
+	# Create a dictionary of menu items
+	memberChannelMenuItems = OrderedDict()
+	
+	# Add the page number into the query string
+	if (int(page) != 1):
+		url = addURLParameters(url, {'page':str(page)})
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of channels
+	channels = html.xpath("//div[contains(@class, 'sectionWrapper')]/div[contains(@class, 'topheader')]")
+	
+	for channel in channels:
+		# Use xPath to extract channel details
+		channelTitle =	channel.xpath("./div[contains(@class, 'floatLeft')]/div[contains(@class, 'title')]/a/text()")[0]
+		channelURL =	BASE_URL + channel.xpath("./div[contains(@class, 'floatLeft')]/div[contains(@class, 'title')]/a/@href")[0] + "/videos"
+		channelThumb =	channel.xpath("./div[contains(@class, 'avatarWrapper')]/a/img/@src")[0]
+		
+		# Add a menu item for the member
+		memberChannelMenuItems[channelTitle] = {'function':BrowseVideos, 'functionArgs':{'url':channelURL, 'title':channelTitle}, 'directoryObjectArgs':{'thumb':channelThumb}}
+	
+	# There is a slight change that this will break... If the number of members returned in total is divisible by PH_MAX_MEMBER_CHANNELS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
+	if (len(channels) == PH_MAX_MEMBER_CHANNELS_PER_PAGE):
+		memberChannelMenuItems['Next Page'] = {'function':MemberChannels, 'functionArgs':{'title':title, 'url':url, 'page':int(page)+1}, 'nextPage':True}
+	
+	return GenerateMenu(title, memberChannelMenuItems)
+
+@route(ROUTE_PREFIX + '/members/channels/subscribed')
+def MemberSubscribedChannels(url, title="Member's Subscribed Channels"):
+	
+	# Create a dictionary of menu items
+	memberSubscribedChannelMenuItems = OrderedDict()
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of subscribed channels
+	channels = html.xpath("//div[contains(@class, 'channelSubWidgetContainer')]/ul/li[contains(@class, 'channelSubChannelWig')]")
+	
+	for channel in channels:
+		# Use xPath to extract channel details
+		channelTitle =	channel.xpath("./div/div[contains(@class, 'wtitle')]/a/text()")[0]
+		channelURL =	BASE_URL + channel.xpath("./div/div[contains(@class, 'wtitle')]/a/@href")[0] + "/videos"
+		channelThumb =	channel.xpath("./div/div/a/img/@src")[0]
+		
+		# Add a menu item for the member
+		memberSubscribedChannelMenuItems[channelTitle] = {'function':BrowseVideos, 'functionArgs':{'url':channelURL, 'title':channelTitle}, 'directoryObjectArgs':{'thumb':channelThumb}}
+	
+	return GenerateMenu(title, memberSubscribedChannelMenuItems)
