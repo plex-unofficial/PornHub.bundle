@@ -1,57 +1,93 @@
-from collections import OrderedDict
+import json
 
-PH_POTENTIAL_RESOLUTIONS = ["1080", "720", "480", "240", "180"]
+PH_POTENTIAL_RESOLUTIONS =		["1080", "720", "480", "240", "180"]
 
-PH_VIDEO_URL_REGEX = "var player_quality_%sp = '([^']+)'"
+PH_VIDEO_URL_REGEX =			"var player_quality_%sp = '([^']+)'"
+PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
 def NormalizeURL(url):
 
 	return url
 
 def MetadataObjectForURL(url):
-
+	
+	# Get the HTML string from the given URL
 	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+		
+		return VideoClipObject(
+			title =		videoMetaData["video_title"],
+			summary =		videoMetaData["video_title"],
+			thumb =		Resource.ContentsOfURLWithFallback(videoMetaData["image_url"], fallback='icon-default.jpg'),
+			content_rating =	'X',
+			duration =		int(videoMetaData["video_duration"]) * 1000
+		)
+	else:
+		# Fall back to old xPath method
+		title =		html.xpath('//title/text()')[0].strip()
+		thumbnail =	html.xpath('//meta[@property="og:image"]/@content')[0].strip()
+		#tags =		html.xpath('//div[@id="media-tags-container"]/h4/a/text()')
 
-	title =		html.xpath('//title/text()')[0].strip()
-	thumbnail =	html.xpath('//meta[@property="og:image"]/@content')[0].strip()
-	#tags =		html.xpath('//div[@id="media-tags-container"]/h4/a/text()')
-
-	return VideoClipObject(
-		title =			title,
-		summary =		title,
-		thumb =			Resource.ContentsOfURLWithFallback([thumbnail], fallback='icon-default.jpg'),
-		content_rating =	'X'
-		#tags =			tags
-	)
+		return VideoClipObject(
+			title =		title,
+			summary =		title,
+			thumb =		Resource.ContentsOfURLWithFallback(thumbnail, fallback='icon-default.jpg'),
+			content_rating =	'X'
+			#tags =		tags
+		)
 
 @deferred
 def MediaObjectsForURL(url):
 	
-	availableResolutions =	OrderedDict([])
+	# The list of MediaObjects to be returned
 	mediaObjects =		[]
 	
-	data =		HTTP.Request(url).content
+	# Get the HTML string from the given URL
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
 	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if videoMetaDataString:
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+	
+	# Loop through all potential resolutions
 	for resolution in PH_POTENTIAL_RESOLUTIONS:
-		video = Regex(PH_VIDEO_URL_REGEX % resolution).search(data)
+		# Search for the video URL string
+		video = Regex(PH_VIDEO_URL_REGEX % resolution).search(htmlString)
 		
+		# If video with the given resolution is found, add it to the list
 		if video:
-			availableResolutions[resolution] = video.group(1)
+			
+			mediaObject = MediaObject(
+				container =			Container.MP4,
+				video_codec =			VideoCodec.H264,
+				video_resolution =		resolution,
+				audio_codec =			AudioCodec.AAC,
+				audio_channels =			2,
+				optimized_for_streaming =	True if Client.Product not in ['Plex Web'] else False,
+				parts = [
+					PartObject(
+						key =	video.group(1)
+					)
+				]
+			)
+			
+			# Check to see if extra metadata is available
+			if videoMetaDataString:
+				mediaObject.duration =		int(videoMetaData["video_duration"]) * 1000
+			
+			mediaObjects.append(mediaObject)
 	
-	for resolution, videoURL in availableResolutions.items():
-		mediaObjects.append(MediaObject(
-			container =			Container.MP4,
-			video_codec =			VideoCodec.H264,
-			video_resolution =		resolution,
-			audio_codec =			AudioCodec.AAC,
-			audio_channels =			2,
-			optimized_for_streaming =	True if Client.Product not in ['Plex Web'] else False,
-			parts = [
-				PartObject(
-					key =	videoURL
-				)
-			]
-		))
 	
 	return mediaObjects
 	
