@@ -162,7 +162,7 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(videos) == int(pageLimit)):
 		oc.add(NextPageObject(
-			key =	Callback(ListVideos, title=title, url=url, page = int(page)+1),
+			key =	Callback(ListVideos, title=title, url=url, page = int(page)+1, pageLimit=int(pageLimit)),
 			title =	'Next Page'
 		))
 
