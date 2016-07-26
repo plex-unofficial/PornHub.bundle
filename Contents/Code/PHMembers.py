@@ -151,6 +151,35 @@ def MemberMenu(title, url, username):
 		}
 	}
 	
+	# There overrides perform a more accurate check, however they all require an extra HTTP request
+	memberMenuPreferenceOverrides =	{
+		"memberMenuAccurateSubscribers": {
+			'title':		'Subscribers',
+			'urlSuffix':	'/subscribers'
+		},
+		"memberMenuAccurateMemberSubscriptions": {
+			'title':		'Member Subscriptions',
+			'urlSuffix':	'/subscriptions'
+		},
+		"memberMenuAccurateFriends": {
+			'title':		'Friends',
+			'urlSuffix':	'/friends'
+		}
+	}
+	
+	# Loop through Preference overrides
+	for key in memberMenuPreferenceOverrides:
+		# Check to see if the Preference is set
+		if (Prefs[key]):
+			# Get the HTML of the page
+			memberMenuPreferenceOverrideHTML = HTML.ElementFromURL(url + memberMenuPreferenceOverrides[key]["urlSuffix"])
+			
+			# Override the menu check
+			memberMenuChecks[memberMenuPreferenceOverrides[key]["title"]] = {
+				"xpath":		"//ul[contains(@class, 'userWidgetWrapperGrid')]/li",
+				"htmlElement":	memberMenuPreferenceOverrideHTML
+			}
+	
 	# Loop through Member menu option conditons
 	for memberMenuCheck in memberMenuChecks:
 		# Attempt to get the element from the page
