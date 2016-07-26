@@ -4,8 +4,11 @@ PH_DISCOVER_MEMBERS_URL =	BASE_URL + '/user/discover'
 PH_SEARCH_MEMBERS_URL =		BASE_URL + '/user/search?username=%s'
 
 # Only the Members search results page has 42 results. The other Member pages have 48 results, but don't feature pagination
-PH_MAX_MEMBERS_PER_PAGE =			42
-PH_MAX_MEMBER_CHANNELS_PER_PAGE =	8
+PH_MAX_MEMBERS_PER_PAGE =					42
+PH_MAX_MEMBERS_PER_MEMBER_SUBSCRIBERS_PAGE =	100
+PH_MAX_MEMBERS_PER_MEMBER_SUBSCRIPTIONS_PAGE =	100
+PH_MAX_MEMBERS_PER_MEMBER_FRIENDS_PAGE =		100
+PH_MAX_MEMBER_CHANNELS_PER_PAGE =			8
 
 @route(ROUTE_PREFIX + '/members')
 def BrowseMembers(title=L("DefaultBrowseMembersTitle"), url=PH_DISCOVER_MEMBERS_URL):
@@ -34,7 +37,7 @@ def BrowseMembers(title=L("DefaultBrowseMembersTitle"), url=PH_DISCOVER_MEMBERS_
 	return GenerateMenu(title, browseMembersMenuItems)
 
 @route(ROUTE_PREFIX + '/members/list')
-def ListMembers(title, url=PH_DISCOVER_MEMBERS_URL, page=1):
+def ListMembers(title, url=PH_DISCOVER_MEMBERS_URL, page=1, pageLimit=PH_MAX_MEMBERS_PER_PAGE):
 	
 	# Create a dictionary of menu items
 	listMembersMenuItems = OrderedDict()
@@ -60,9 +63,9 @@ def ListMembers(title, url=PH_DISCOVER_MEMBERS_URL, page=1):
 		# Add a menu item for the member
 		listMembersMenuItems[memberTitle] = {'function':MemberMenu, 'functionArgs':{'url':memberURL, 'username':memberTitle}, 'directoryObjectArgs':{'thumb':memberThumbnail}}
 	
-	# There is a slight change that this will break... If the number of members returned in total is divisible by PH_MAX_MEMBERS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
-	if (len(members) == PH_MAX_MEMBERS_PER_PAGE):
-		listMembersMenuItems['Next Page'] = {'function':ListMembers, 'functionArgs':{'title':title, 'url':url, 'page':int(page)+1}, 'nextPage':True}
+	# There is a slight change that this will break... If the number of members returned in total is divisible by pageLimit with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
+	if (len(members) == int(pageLimit)):
+		listMembersMenuItems['Next Page'] = {'function':ListMembers, 'functionArgs':{'title':title, 'url':url, 'page':int(page)+1, 'pageLimit':int(pageLimit)}, 'nextPage':True}
 	
 	return GenerateMenu(title, listMembersMenuItems)
 
@@ -87,30 +90,21 @@ def MemberMenu(title, url, username):
 	
 	# Create a dictionary of menu items
 	memberMenuItems = OrderedDict([
-		('Channels',			{'function':MemberChannels,			'functionArgs':{'title':username + "'s Channels",				'url':url + '/channels'}}),
-		('Subscribed Channels',	{'function':MemberSubscribedChannels,	'functionArgs':{'title':username + "'s Subscribed Channels",		'url':url + '/channel_subscriptions'}}),
-		('Subscribed Porn Stars',	{'function':MemberSubscribedPornStars,	'functionArgs':{'title':username + "'s Subscribed Porn Stars",	'url':url + '/pornstar_subscriptions'}}),
-		('Public Videos',		{'function':ListVideos,				'functionArgs':{'title':username + "'s Public Videos",			'url':url + '/videos/public'}}),
-		('Favorite Videos',		{'function':ListVideos,				'functionArgs':{'title':username + "'s Favorite Videos",			'url':url + '/videos/favorites'}}),
-		('Watched Videos',		{'function':ListVideos,				'functionArgs':{'title':username + "'s Watched Videos",			'url':url + '/videos/recent'}}),
-		('Public Playlists',		{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Public Playlists",		'url':url + '/playlists/public'}}),
-		('Favorite Playlists',	{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Favorite Playlists",		'url':url + '/playlists/favorites'}})
+		('Public Videos',			{'function':ListVideos,				'functionArgs':{'title':username + "'s Public Videos",			'url':url + '/videos/public'}}),
+		('Favorite Videos',			{'function':ListVideos,				'functionArgs':{'title':username + "'s Favorite Videos",			'url':url + '/videos/favorites'}}),
+		('Watched Videos',			{'function':ListVideos,				'functionArgs':{'title':username + "'s Watched Videos",			'url':url + '/videos/recent'}}),
+		('Public Playlists',			{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Public Playlists",		'url':url + '/playlists/public'}}),
+		('Favorite Playlists',		{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Favorite Playlists",		'url':url + '/playlists/favorites'}}),
+		('Channels',				{'function':MemberChannels,			'functionArgs':{'title':username + "'s Channels",				'url':url + '/channels'}}),
+		('Channel Subscriptions',		{'function':MemberSubscribedChannels,	'functionArgs':{'title':username + "'s Channel Subscriptions",	'url':url + '/channel_subscriptions'}}),
+		('Porn Star Subscriptions',	{'function':MemberSubscribedPornStars,	'functionArgs':{'title':username + "'s Porn Star Subscriptions",	'url':url + '/pornstar_subscriptions'}}),
+		('Subscribers',				{'function':ListMembers,				'functionArgs':{'title':username + "'s Subscribers",			'url':url + '/subscribers',			'pageLimit':PH_MAX_MEMBERS_PER_MEMBER_SUBSCRIBERS_PAGE}}),
+		('Member Subscriptions',		{'function':ListMembers,				'functionArgs':{'title':username + "'s Member Subscriptions",		'url':url + '/subscriptions',			'pageLimit':PH_MAX_MEMBERS_PER_MEMBER_SUBSCRIPTIONS_PAGE}}),
+		('Friends',				{'function':ListMembers,				'functionArgs':{'title':username + "'s Friends",				'url':url + '/friends',				'pageLimit':PH_MAX_MEMBERS_PER_MEMBER_FRIENDS_PAGE}})
 	])
 	
 	# This dictionary will hold the conditons on which we want to display Member menu options
 	memberMenuChecks = {
-		"Channels": {
-			"xpath":		"//div[contains(@class,'channelSubWidgetContainer')]/ul/li[contains(@class,'channelSubChannelWig')]",
-			"htmlElement":	memberHTML
-		},
-		"Subscribed Channels": {
-			"xpath":		"//div[contains(@class,'userWidgetContainer')]/ul/li[contains(@class,'userChannelWig')]",
-			"htmlElement":	memberHTML
-		},
-		"Subscribed Porn Stars": {
-			"xpath":		"//section[@id='sidebarPornstars']//ul[contains(@class,'pornStarSideBar')]/li[contains(@class,'pornstarsElements')]",
-			"htmlElement":	memberHTML
-		},
 		"Public Videos": {
 			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']",
 			"htmlElement":	memberVideosHTML
@@ -130,6 +124,30 @@ def MemberMenu(title, url, username):
 		"Favorite Playlists": {
 			"xpath":		"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']",
 			"htmlElement":	memberPlaylistsHTML
+		},
+		"Channels": {
+			"xpath":		"//div[contains(@class,'channelSubWidgetContainer')]/ul/li[contains(@class,'channelSubChannelWig')]",
+			"htmlElement":	memberHTML
+		},
+		"Channel Subscriptions": {
+			"xpath":		"//div[contains(@class,'userWidgetContainer')]/ul/li[contains(@class,'userChannelWig')]",
+			"htmlElement":	memberHTML
+		},
+		"Porn Star Subscriptions": {
+			"xpath":		"//section[@id='sidebarPornstars']//ul[contains(@class,'pornStarSideBar')]/li[contains(@class,'pornstarsElements')]",
+			"htmlElement":	memberHTML
+		},
+		"Subscribers": {
+			"xpath":		"//ul[contains(@class,'subViewsInfoContainer')]/li[a[span[contains(@class,'connections')][contains(text(),'subscriber')]]]/a/span[contains(@class,'number')][not(text()='0')]",
+			"htmlElement":	memberHTML
+		},
+		"Member Subscriptions": {
+			"xpath":		"//section[@id='profileSubscriptions']//ul/li[contains(@class,'subscriptionsElement')]",
+			"htmlElement":	memberHTML
+		},
+		"Friends": {
+			"xpath":		"//ul[contains(@class,'subViewsInfoContainer')]/li[a[span[contains(@class,'connections')][contains(text(),'friend')]]]/a/span[contains(@class,'number')][not(text()='0')]",
+			"htmlElement":	memberHTML
 		}
 	}
 	
