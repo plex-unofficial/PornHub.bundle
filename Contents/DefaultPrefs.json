@@ -53,7 +53,7 @@
 		"id":		"memberMenuAccurateSubscribers",
 		"label":	"Member Menu - Accurate Subscribers",
 		"type":	"bool",
-		"default":	"true",
+		"default":	"false",
 	},
 	{
 		"id":		"memberMenuAccurateMemberSubscriptions",

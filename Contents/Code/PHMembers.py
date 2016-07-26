@@ -189,7 +189,7 @@ def MemberMenu(title, url, username):
 			# If no elements are found, do not display the Member menu option
 			del memberMenuItems[memberMenuCheck]
 	
-	return GenerateMenu(title, memberMenuItems)
+	return GenerateMenu(title, memberMenuItems, no_cache=True)
 
 @route(ROUTE_PREFIX + '/members/channels')
 def MemberChannels(url, title="Member Channels", page=1):
