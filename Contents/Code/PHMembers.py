@@ -106,25 +106,16 @@ def MemberMenu(title, url, username):
 	# This dictionary will hold the conditons on which we want to display Member menu options
 	memberMenuChecks = {
 		"Public Videos": {
-			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']",
-			"htmlElement":	memberVideosHTML
+			"xpath":		"//section[@id='profileVideos']//ul[contains(@class,'videos')]/li[contains(@class,'videoblock')]",
+			"htmlElement":	memberHTML
 		},
-		"Favorite Videos": {
-			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']",
-			"htmlElement":	memberVideosHTML
-		},
-		"Watched Videos": {
-			"xpath":		"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Watched']",
-			"htmlElement":	memberVideosHTML
-		},
+		"Favorite Videos":		None,
+		"Watched Videos":		None,
 		"Public Playlists": {
-			"xpath":		"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']",
-			"htmlElement":	memberPlaylistsHTML
+			"xpath":		"//section[@id='playlistsSidebar']//ul[contains(@class,'user-playlist')]/li[contains(@id,'playlist_')]",
+			"htmlElement":	memberHTML
 		},
-		"Favorite Playlists": {
-			"xpath":		"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']",
-			"htmlElement":	memberPlaylistsHTML
-		},
+		"Favorite Playlists":	None,
 		"Channels": {
 			"xpath":		"//div[contains(@class,'channelSubWidgetContainer')]/ul/li[contains(@class,'channelSubChannelWig')]",
 			"htmlElement":	memberHTML
@@ -153,6 +144,21 @@ def MemberMenu(title, url, username):
 	
 	# These overrides perform a more accurate check, however they all require an extra HTTP request
 	memberMenuPreferenceOverrides =	{
+		"memberMenuAccurateVideos": {
+			'urlSuffix':	'/videos',
+			'checks':		[
+				{'key':'Public Videos',		'xpath':"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']"},
+				{'key':'Favorite Videos',		'xpath':"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']"},
+				{'key':'Watched Videos',		'xpath':"//section[@id='videosTab']//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Watched']"}
+			]
+		},
+		"memberMenuAccuratePlaylists": {
+			'urlSuffix':	'/playlists',
+			'checks':		[
+				{'key':'Public Playlists',	'xpath':"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Public']"},
+				{'key':'Favorite Playlists',	'xpath':"//nav[contains(@class,'sectionMenu')]/ul/li/a[text()='Favorites']"}
+			]
+		},
 		"memberMenuAccurateSubscribers": {
 			'urlSuffix':	'/subscribers',
 			'checks':		[
@@ -189,13 +195,17 @@ def MemberMenu(title, url, username):
 				}
 	
 	# Loop through Member menu option conditons
-	for memberMenuCheck in memberMenuChecks:
-		# Attempt to get the element from the page
-		elements = memberMenuChecks[memberMenuCheck]["htmlElement"].xpath(memberMenuChecks[memberMenuCheck]["xpath"])
-		
-		if (len(elements) == 0):
-			# If no elements are found, do not display the Member menu option
-			del memberMenuItems[memberMenuCheck]
+	for key in memberMenuChecks:
+		# Make sure the check exists
+		if (memberMenuChecks[key] is not None):
+			# Attempt to get the element from the page
+			elements = memberMenuChecks[key]["htmlElement"].xpath(memberMenuChecks[key]["xpath"])
+			
+			if (len(elements) == 0):
+				# If no elements are found, do not display the Member menu option
+				del memberMenuItems[key]
+		else:
+			del memberMenuItems[key]
 	
 	return GenerateMenu(title, memberMenuItems, no_cache=True)
 

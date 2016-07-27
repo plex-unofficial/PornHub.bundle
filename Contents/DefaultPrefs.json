@@ -50,6 +50,18 @@
 		"default":	"true",
 	},
 	{
+		"id":		"memberMenuAccurateVideos",
+		"label":	"Member Menu - Accurate Videos",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"memberMenuAccuratePlaylists",
+		"label":	"Member Menu - Accurate Playlists",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
 		"id":		"memberMenuAccurateSubscribers",
 		"label":	"Member Menu - Accurate Subscribers",
 		"type":	"bool",
