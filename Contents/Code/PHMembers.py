@@ -151,19 +151,25 @@ def MemberMenu(title, url, username):
 		}
 	}
 	
-	# There overrides perform a more accurate check, however they all require an extra HTTP request
+	# These overrides perform a more accurate check, however they all require an extra HTTP request
 	memberMenuPreferenceOverrides =	{
 		"memberMenuAccurateSubscribers": {
-			'title':		'Subscribers',
-			'urlSuffix':	'/subscribers'
+			'urlSuffix':	'/subscribers',
+			'checks':		[
+				{'key':'Subscribers',		'xpath':"//ul[contains(@class, 'userWidgetWrapperGrid')]/li"}
+			]
 		},
 		"memberMenuAccurateMemberSubscriptions": {
-			'title':		'Member Subscriptions',
-			'urlSuffix':	'/subscriptions'
+			'urlSuffix':	'/subscriptions',
+			'checks':		[
+				{'key':'Member Subscriptions',	'xpath':"//ul[contains(@class, 'userWidgetWrapperGrid')]/li"}
+			]
 		},
 		"memberMenuAccurateFriends": {
-			'title':		'Friends',
-			'urlSuffix':	'/friends'
+			'urlSuffix':	'/friends',
+			'checks':		[
+				{'key':'Friends',			'xpath':"//ul[contains(@class, 'userWidgetWrapperGrid')]/li"}
+			]
 		}
 	}
 	
@@ -174,11 +180,13 @@ def MemberMenu(title, url, username):
 			# Get the HTML of the page
 			memberMenuPreferenceOverrideHTML = HTML.ElementFromURL(url + memberMenuPreferenceOverrides[key]["urlSuffix"])
 			
-			# Override the menu check
-			memberMenuChecks[memberMenuPreferenceOverrides[key]["title"]] = {
-				"xpath":		"//ul[contains(@class, 'userWidgetWrapperGrid')]/li",
-				"htmlElement":	memberMenuPreferenceOverrideHTML
-			}
+			# Loop through the checks
+			for check in memberMenuPreferenceOverrides[key]["checks"]:
+				# Override the menu check
+				memberMenuChecks[check['key']] = {
+					"xpath":		check['xpath'],
+					"htmlElement":	memberMenuPreferenceOverrideHTML
+				}
 	
 	# Loop through Member menu option conditons
 	for memberMenuCheck in memberMenuChecks:
