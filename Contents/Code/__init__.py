@@ -18,6 +18,7 @@ def Start():
 	
 	# Set the defaults of Directory Objects
 	DirectoryObject.thumb =	R(ICON)
+	PhotoAlbumObject.thumb =	R(ICON)
 	
 	# Set the default language
 	Locale.DefaultLocale = "en"

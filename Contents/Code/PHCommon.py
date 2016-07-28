@@ -1,3 +1,5 @@
+import json
+import time
 import urllib
 import urlparse
 from collections import OrderedDict
@@ -12,11 +14,14 @@ PH_PORNSTAR_HOVER_URL =		BASE_URL + '/pornstar/hover?id=%s'
 PH_CHANNEL_HOVER_URL =		BASE_URL + '/channel/hover?id=%s'
 PH_USER_HOVER_URL =		BASE_URL + '/user/hover?id=%s'
 
-MAX_VIDEOS_PER_PAGE =			32
+MAX_VIDEOS_PER_PAGE =			44
+MAX_VIDEOS_PER_PAGE_PAGE_ONE =	32
 MAX_VIDEOS_PER_SEARCH_PAGE =		20
 MAX_VIDEOS_PER_CHANNEL_PAGE =	36
-MAX_VIDEOS_PER_PORNSTAR_PAGE =	26
+MAX_VIDEOS_PER_PORNSTAR_PAGE =	36
 MAX_VIDEOS_PER_USER_PAGE =		48
+
+PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
 SORT_ORDERS = OrderedDict([
 	('Most Recent',					{'o':'mr'}),
@@ -71,7 +76,7 @@ def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOr
 	return GenerateMenu(title, browseVideosMenuItems)
 
 @route(ROUTE_PREFIX + '/videos/list')
-def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE):
+def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE_PAGE_ONE):
 	
 	# Create the object to contain all of the videos
 	oc = ObjectContainer(title2 = title)
@@ -89,6 +94,9 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 		pageLimit =	MAX_VIDEOS_PER_PORNSTAR_PAGE
 	elif ("/users/" in url):
 		pageLimit =	MAX_VIDEOS_PER_USER_PAGE
+	elif ("/video" in url and page > 1):
+		# In the Browse All Videos and Categories menus, they display MAX_VIDEOS_PER_PAGE_PAGE_ONE on page one, and MAX_VIDEOS_PER_PAGE from page two onward
+		pageLimit =	MAX_VIDEOS_PER_PAGE
 	
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
@@ -147,13 +155,14 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 			oc.add(DirectoryObject(
 				key =	Callback(VideoMenu, url=videoURL, title=videoTitle, duration=duration),
 				title =	videoTitle,
-				thumb =	thumbnail
+				thumb =	thumbnail,
+				duration =	duration
 			))
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(videos) == int(pageLimit)):
 		oc.add(NextPageObject(
-			key =	Callback(ListVideos, title=title, url=url, page = int(page)+1),
+			key =	Callback(ListVideos, title=title, url=url, page = int(page)+1, pageLimit=int(pageLimit)),
 			title =	'Next Page'
 		))
 
@@ -162,13 +171,19 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 @route(ROUTE_PREFIX + '/videos/menu')
 def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Create the object to contain all of the videos options
-	oc = ObjectContainer(title2 = title)
+	oc = ObjectContainer(title2 = title, no_cache=True)
+	
+	# Create an empty object for video metadata
+	videoMetaData = {}
 	
 	# Create the Video Clip Object
 	vco =	URLService.MetadataObjectForURL(url)
 	
 	# As I am calling MetadataObjectForURL from the URL Service, it only returns the metadata, it doesn't contain the URL
 	vco.url =	url
+	
+	# Overide the title
+	vco.title =	"Play Video"
 	
 	if (int(duration) > 0):
 		vco.duration = int(duration)
@@ -177,79 +192,119 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	oc.add(vco)
 	
 	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
 	
-	# Use xPath to extract the uploader of the video
-	uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
 	
-	# Make sure one is returned
-	if (len(uploader) > 0):
-		# Get the link within
-		uploaderLink =	uploader[0].xpath("./a")
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
 		
-		# Make sure it exists
-		if (len(uploaderLink) > 0):
-			uploaderURL =	BASE_URL + uploaderLink[0].xpath("./@href")[0]
-			uploaderName =	uploaderLink[0].xpath("./text()")[0]
+	# Check to see if Thumbnails are enabled in the video sub menu in the Preferences, and also if the Thumbnail metadata exists
+	if (Prefs["videoMenuShowThumbnails"] and videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
+		oc.add(PhotoAlbumObject(
+			key =		Callback(VideoThumbnails, url=url),
+			rating_key =	url + " - Thumbnails",
+			title =		"Thumbnails",
+			summary =		"Tiled thumbnails from this video"
+		))
+	
+	# Check to see if Uploaders are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowUploader"]):
+		# Use xPath to extract the uploader of the video
+		uploader = html.xpath("//div[contains(@class, 'video-info-row')]/div[contains(@class, 'usernameWrap')]")
+		
+		# Make sure one is returned
+		if (len(uploader) > 0):
+			# Get the link within
+			uploaderLink =	uploader[0].xpath("./a")
 			
-			uploaderType = uploader[0].xpath("./@data-type")[0]
+			# Make sure it exists
+			if (len(uploaderLink) > 0):
+				uploaderURL =	BASE_URL + uploaderLink[0].xpath("./@href")[0]
+				uploaderName =	uploaderLink[0].xpath("./text()")[0]
+				
+				uploaderType = uploader[0].xpath("./@data-type")[0]
+				
+				# Check to see if the video is listed under a channel or a user
+				if (uploaderType == "channel"):
+					channelID =	uploader[0].xpath("./@data-channelid")[0]
+					
+					# Fetch the thumbnail
+					channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
+					
+					channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+					
+					oc.add(DirectoryObject(
+						key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
+						title =	uploaderName,
+						summary =	"Channel this video appears in",
+						thumb =	channelThumbnail
+					))
+				elif (uploaderType == "user"):
+					pass
+	
+	# Check to see if Porn Stars are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowPornStars"]):
+		# Use xPath to extract a list of porn stars in the video
+		pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
+		
+		# Check how any porn stars are returned.
+		# If just one, then display a Directory Object pointing to the porn star
+		if (len(pornStars) == 1):
+			oc.add(GenerateVideoPornStarDirectoryObject(pornStars[0]))
 			
-			# Check to see if the video is listed under a channel or a user
-			if (uploaderType == "channel"):
-				channelID =	uploader[0].xpath("./@data-channelid")[0]
-				
-				# Fetch the thumbnail
-				channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
-				
-				channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
-				
-				oc.add(DirectoryObject(
-					key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
-					title =	uploaderName,
-					thumb =	channelThumbnail
-				))
-			elif (uploaderType == "user"):
-				pass
+		# If more than one, create a Directory Object to another menu where all porn stars will be listed
+		elif (len(pornStars) > 1):
+			oc.add(DirectoryObject(
+				key =	Callback(GenerateVideoPornStarMenu, url=url),
+				title =	"Porn Stars",
+				summary =	"Porn Stars that appear in this video"
+			))
 	
-	# Use xPath to extract a list of porn stars in the video
-	pornStars = html.xpath("//div[contains(@class, 'pornstarsWrapper')]/a[contains(@class, 'pstar-list-btn')]")
 	
-	# Check how any porn stars are returned.
-	# If just one, then display a Directory Object pointing to the porn star
-	if (len(pornStars) == 1):
-		oc.add(GenerateVideoPornStarDirectoryObject(pornStars[0]))
+	# Check to see if Related Videos are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowRelatedVideos"]):
+		# Use xPath to extract the related videos
+		relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
 		
-	# If more than one, create a Directory Object to another menu where all porn stars will be listed
-	elif (len(pornStars) > 1):
-		oc.add(DirectoryObject(
-			key =	Callback(GenerateVideoPornStarMenu, url=url),
-			title =	"Porn Stars"
-		))
+		if (len(relatedVideos) > 0):
+			relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+			
+			# Add the Related Videos Directory Object
+			oc.add(DirectoryObject(
+				key =	Callback(RelatedVideos, url=url),
+				title =	"Related Videos",
+				summary =	"Videos related to this video",
+				thumb =	relatedVideosThumb
+			))
 	
-	# Use xPath to extract the related videos
-	relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
 	
-	if (len(relatedVideos) > 0):
-		relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+	# Check to see if Playlists are enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowPlaylists"]):
+		# Fetch playlists containing the video (if any)
+		playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
 		
-		# Add the Related Videos Directory Object
-		oc.add(DirectoryObject(
-			key =	Callback(RelatedVideos, url=url),
-			title =	"Related Videos",
-			thumb =	relatedVideosThumb
-		))
+		if (len(playlists) > 0):
+			playlistsThumb =	playlists[0].xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
+			
+			oc.add(DirectoryObject(
+				key =	Callback(PlaylistsContainingVideo, url=url),
+				title =	"Playlists",
+				summary =	"Playlists that contain this video",
+				thumb =	playlistsThumb
+			))
 	
-	# Fetch playlists containing the video (if any)
-	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
-	
-	if (len(playlists) > 0):
-		playlistsThumb =	playlists[0].xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
-		
-		oc.add(DirectoryObject(
-			key =	Callback(PlaylistsContainingVideo, url=url),
-			title =	"Playlists Containing Video",
-			thumb =	playlistsThumb
-		))
+	# Check to see if Action is enabled in the video sub menu in the Preferences
+	if (Prefs["videoMenuShowAction"]):
+		if (videoMetaData["actionTags"]):
+			oc.add(DirectoryObject(
+				key =	Callback(VideoActions, url=url),
+				title =	"Action",
+				summary =	"Timestamps of when actions (e.g. different positions) happen in this video"
+			))
 	
 	return oc
 
@@ -295,8 +350,44 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 	return DirectoryObject(
 		key =	Callback(BrowseVideos, url=pornStarURL, title=pornStarName),
 		title =	pornStarName,
+		summary =	"Porn Star appearing in this video",
 		thumb =	pornStarThumbnail
 	)
+
+@route(ROUTE_PREFIX + '/video/thumbnails')
+def VideoThumbnails(url, title="Thumbnails"):
+	# Create the object to contain the thumbnails
+	oc = ObjectContainer(title2=title)
+	
+	# Get the HTML of the site
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+		
+		if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"] != False):
+			
+			videoThumbnailsCount =	Regex("/S{(\d+)}.jpg").search(videoMetaData["thumbs"]["urlPattern"])
+			
+			if (videoThumbnailsCount):
+				videoThumbnailsCountString = videoThumbnailsCount.group(1)
+				
+				for i in range(int(videoThumbnailsCountString) + 1):
+					thumbnailURL = videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg")
+					
+					oc.add(PhotoObject(
+						key =		thumbnailURL,
+						rating_key =	thumbnailURL,
+						title =		str(i),
+						thumb =		thumbnailURL
+					))
+	
+	return oc
 
 @route(ROUTE_PREFIX + '/video/related')
 def RelatedVideos(url, title="Related Videos"):
@@ -318,6 +409,7 @@ def RelatedVideos(url, title="Related Videos"):
 		oc.add(DirectoryObject(
 			key =	Callback(VideoMenu, url=relatedVideoURL, title=relatedVideoTitle),
 			title =	relatedVideoTitle,
+			summary =	relatedVideoTitle,
 			thumb =	relatedVideoThumb
 		))
 	
@@ -345,6 +437,47 @@ def PlaylistsContainingVideo(url, title="Playlists Containing Video"):
 			title =	playlistTitle,
 			thumb =	playlistThumb
 		))
+	
+	return oc
+
+@route(ROUTE_PREFIX + '/video/actions')
+def VideoActions(url, title="Actions", header=None, message=None, replace_parent=None):
+	# Create the object to contain the actions
+	oc = ObjectContainer(title2=title)
+	
+	if (header):
+		oc.header =		header
+	if (message):
+		oc.message =		message
+	if (replace_parent):
+		oc.replace_parent =	replace_parent
+	
+	# Get the HTML of the site
+	html =		HTML.ElementFromURL(url)
+	htmlString =	HTML.StringFromElement(html)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		videoMetaData = json.loads(videoMetaDataString.group(1))
+		
+		if (videoMetaData["actionTags"]):
+			actions = videoMetaData["actionTags"].split(",")
+			
+			for action in actions:
+				actionSegments =	action.split(":")
+				
+				actionTimestamp =	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
+				actionTitle =		actionSegments[0]
+				actionSummary =		actionTitle + " starts at " + actionTimestamp
+				
+				oc.add(DirectoryObject(
+					key =	Callback(VideoActions, url=url, title=title, header=actionTitle, message=actionSummary, replace_parent=True),
+					title =	actionTimestamp + ": " + actionTitle,
+					summary =	actionSummary
+				))
 	
 	return oc
 
