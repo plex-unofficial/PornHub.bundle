@@ -36,22 +36,18 @@ def ListPornStars(title, url = PH_PORNSTARS_URL, page=1):
 	if (int(page) != 1):
 		url = addURLParameters(url, {'page':str(page)})
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of porn stars
-	pornStars = html.xpath("//ul[contains(@class, 'pornstarIndex')]/li")
+	# Get list of porn stars
+	pornStars = SharedCodeService.PHPornStars.GetPornStars(url)
 	
 	# Loop through all channels
 	for pornStar in pornStars:
 		
-		# Use xPath to extract porn star details
-		pornStarName =		pornStar.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/a/text()")[0]
-		pornStarURL =		BASE_URL + pornStar.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/a/@href")[0]
-		pornStarThumbnail =	pornStar.xpath("./div/a/img/@src")[0]
-		
 		# Add a menu item for the porn star
-		listPornStarsMenuItems[pornStarName] = {'function':BrowseVideos, 'functionArgs':{'url':pornStarURL}, 'directoryObjectArgs':{'thumb':pornStarThumbnail}}
+		listPornStarsMenuItems[pornStar["name"]] = {
+			'function':			BrowseVideos,
+			'functionArgs':			{'url': BASE_URL + pornStar["url"]},
+			'directoryObjectArgs':	{'thumb': pornStar["thumbnail"]}
+		}
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(pornStars) == MAX_PORNSTARS_PER_PAGE):

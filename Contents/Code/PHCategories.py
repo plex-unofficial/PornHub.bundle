@@ -9,21 +9,17 @@ def BrowseCategories(title=L("DefaultBrowseCategoriesTitle"), url = PH_CATEGORIE
 	# Create a dictionary of menu items
 	browseCategoriesMenuItems = OrderedDict()
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of catgegories
-	categories = html.xpath("//div[@id='categoriesStraightImages']/ul[contains(@class, 'categories-list')]/li/div")
+	# Get list of categories
+	categories = SharedCodeService.PHCategories.GetCategories(url)
 	
 	# Loop through all categories
 	for category in categories:
 		
-		# Use xPath to extract category details
-		categoryTitle =		category.xpath("./h5/a/strong/text()")[0]
-		categoryURL =		BASE_URL + category.xpath("./h5/a/@href")[0]
-		categoryThumbnail =	category.xpath("./a/img/@src")[0]
-		
 		# Add a menu item for the category
-		browseCategoriesMenuItems[categoryTitle] = {'function':BrowseVideos, 'functionArgs':{'url':categoryURL}, 'directoryObjectArgs':{'thumb':categoryThumbnail}}
+		browseCategoriesMenuItems[category["title"]] = {
+			'function':			BrowseVideos,
+			'functionArgs':			{'url': BASE_URL + category["url"]},
+			'directoryObjectArgs':	{'thumb': category["thumbnail"]}
+		}
 	
 	return GenerateMenu(title, browseCategoriesMenuItems)

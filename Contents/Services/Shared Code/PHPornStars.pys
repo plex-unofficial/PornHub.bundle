@@ -1,0 +1,21 @@
+def GetPornStars(url):
+	# Create an empty list to hold the porn stars
+	pornStars = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of porn stars
+	pornStarElements = html.xpath("//ul[contains(@class, 'pornstarIndex')]/li")
+	
+	# Loop through all channels
+	for pornStarElement in pornStarElements:
+		
+		# Use xPath to extract porn star details, and add the porn star to the list
+		pornStars.append({
+			'name':		pornStarElement.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/a/text()")[0],
+			'url':		pornStarElement.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/a/@href")[0],
+			'thumbnail':	pornStarElement.xpath("./div/a/img/@src")[0]
+		})
+	
+	return pornStars

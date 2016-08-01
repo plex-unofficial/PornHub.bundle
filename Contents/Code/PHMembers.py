@@ -18,21 +18,17 @@ def BrowseMembers(title=L("DefaultBrowseMembersTitle"), url=PH_DISCOVER_MEMBERS_
 		('Search Members', {'function':SearchMembers, 'search':True, 'directoryObjectArgs':{'prompt':'Search for...','summary':"Enter member's username"}})
 	])
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of sort orders
-	sortOrders = html.xpath("//div[contains(@class, 'members-page')]/div[contains(@class, 'sectionTitle')]")
+	# Get list of sort orders
+	sortOrders = SharedCodeService.PHMembers.GetMemberSortOrders(url)
 	
 	# Loop through all sort orders
 	for sortOrder in sortOrders:
 		
-		# Use xPath to extract sort order details
-		sortOrderTitle =	sortOrder.xpath("./h2/text()")[0]
-		sortOrderURL =	BASE_URL + sortOrder.xpath("./div[contains(@class, 'filters')]/a/@href")[0]
-		
 		# Add a menu item for the sort order
-		browseMembersMenuItems[sortOrderTitle] = {'function':ListMembers, 'functionArgs':{'url':sortOrderURL}}
+		browseMembersMenuItems[sortOrder["title"]] = {
+			'function':	ListMembers,
+			'functionArgs':	{'url': BASE_URL + sortOrder["url"]}
+		}
 	
 	return GenerateMenu(title, browseMembersMenuItems)
 
@@ -46,22 +42,18 @@ def ListMembers(title, url=PH_DISCOVER_MEMBERS_URL, page=1, pageLimit=PH_MAX_MEM
 	if (int(page) != 1):
 		url = addURLParameters(url, {'page':str(page)})
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of members
-	members = html.xpath("//ul[contains(@class, 'userWidgetWrapperGrid')]/li")
+	# Get list of members
+	members = SharedCodeService.PHMembers.GetMembers(url)
 	
 	# Loop through all members
 	for member in members:
 		
-		# Use xPath to extract member details
-		memberTitle =		member.xpath("./div[contains(@class, 'usernameWrap')]/a[contains(@class, 'usernameLink')]/text()")[0]
-		memberURL =		BASE_URL + member.xpath("./div[contains(@class, 'usernameWrap')]/a[contains(@class, 'usernameLink')]/@href")[0]
-		memberThumbnail =	member.xpath("./div[contains(@class, 'large-avatar')]/a[contains(@class, 'userLink')]/img/@src")[0]
-		
 		# Add a menu item for the member
-		listMembersMenuItems[memberTitle] = {'function':MemberMenu, 'functionArgs':{'url':memberURL, 'username':memberTitle}, 'directoryObjectArgs':{'thumb':memberThumbnail}}
+		listMembersMenuItems[member["title"]] = {
+			'function':			MemberMenu,
+			'functionArgs':			{'url': BASE_URL + member["url"], 'username':member["title"]},
+			'directoryObjectArgs':	{'thumb': member["thumbnail"]}
+		}
 	
 	# There is a slight change that this will break... If the number of members returned in total is divisible by pageLimit with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(members) == int(pageLimit)):
@@ -95,9 +87,9 @@ def MemberMenu(title, url, username):
 		('Watched Videos',			{'function':ListVideos,				'functionArgs':{'title':username + "'s Watched Videos",			'url':url + '/videos/recent'}}),
 		('Public Playlists',			{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Public Playlists",		'url':url + '/playlists/public'}}),
 		('Favorite Playlists',		{'function':ListPlaylists,				'functionArgs':{'title':username + "'s Favorite Playlists",		'url':url + '/playlists/favorites'}}),
-		('Channels',				{'function':MemberChannels,			'functionArgs':{'title':username + "'s Channels",				'url':url + '/channels'}}),
-		('Channel Subscriptions',		{'function':MemberSubscribedChannels,	'functionArgs':{'title':username + "'s Channel Subscriptions",	'url':url + '/channel_subscriptions'}}),
-		('Porn Star Subscriptions',	{'function':MemberSubscribedPornStars,	'functionArgs':{'title':username + "'s Porn Star Subscriptions",	'url':url + '/pornstar_subscriptions'}}),
+		('Channels',				{'function':ListMemberChannels,			'functionArgs':{'title':username + "'s Channels",				'url':url + '/channels'}}),
+		('Channel Subscriptions',		{'function':ListMemberSubscribedChannels,	'functionArgs':{'title':username + "'s Channel Subscriptions",	'url':url + '/channel_subscriptions'}}),
+		('Porn Star Subscriptions',	{'function':ListMemberSubscribedPornStars,	'functionArgs':{'title':username + "'s Porn Star Subscriptions",	'url':url + '/pornstar_subscriptions'}}),
 		('Subscribers',				{'function':ListMembers,				'functionArgs':{'title':username + "'s Subscribers",			'url':url + '/subscribers',			'pageLimit':PH_MAX_MEMBERS_PER_MEMBER_SUBSCRIBERS_PAGE}}),
 		('Member Subscriptions',		{'function':ListMembers,				'functionArgs':{'title':username + "'s Member Subscriptions",		'url':url + '/subscriptions',			'pageLimit':PH_MAX_MEMBERS_PER_MEMBER_SUBSCRIPTIONS_PAGE}}),
 		('Friends',				{'function':ListMembers,				'functionArgs':{'title':username + "'s Friends",				'url':url + '/friends',				'pageLimit':PH_MAX_MEMBERS_PER_MEMBER_FRIENDS_PAGE}})
@@ -210,7 +202,7 @@ def MemberMenu(title, url, username):
 	return GenerateMenu(title, memberMenuItems, no_cache=True)
 
 @route(ROUTE_PREFIX + '/members/channels')
-def MemberChannels(url, title="Member Channels", page=1):
+def ListMemberChannels(url, title="Member Channels", page=1):
 	
 	# Create a dictionary of menu items
 	memberChannelMenuItems = OrderedDict()
@@ -219,69 +211,60 @@ def MemberChannels(url, title="Member Channels", page=1):
 	if (int(page) != 1):
 		url = addURLParameters(url, {'page':str(page)})
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of Channels
-	channels = html.xpath("//div[contains(@class, 'sectionWrapper')]/div[contains(@class, 'topheader')]")
+	# Get list of channels
+	channels = SharedCodeService.PHMembers.GetMemberChannels(url)
 	
 	for channel in channels:
-		# Use xPath to extract Channel details
-		channelTitle =	channel.xpath("./div[contains(@class, 'floatLeft')]/div[contains(@class, 'title')]/a/text()")[0]
-		channelURL =	BASE_URL + channel.xpath("./div[contains(@class, 'floatLeft')]/div[contains(@class, 'title')]/a/@href")[0] + "/videos"
-		channelThumb =	channel.xpath("./div[contains(@class, 'avatarWrapper')]/a/img/@src")[0]
 		
-		# Add a menu item for the Channel
-		memberChannelMenuItems[channelTitle] = {'function':BrowseVideos, 'functionArgs':{'url':channelURL, 'title':channelTitle}, 'directoryObjectArgs':{'thumb':channelThumb}}
+		# Add a menu item for the channel
+		memberChannelMenuItems[channel["title"]] = {
+			'function':			BrowseVideos,
+			'functionArgs':			{'url': BASE_URL + channel["url"], 'title':channel["title"]},
+			'directoryObjectArgs':	{'thumb': channel["thumbnail"]}
+		}
 	
 	# There is a slight change that this will break... If the number of Channels returned in total is divisible by PH_MAX_MEMBER_CHANNELS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(channels) == PH_MAX_MEMBER_CHANNELS_PER_PAGE):
-		memberChannelMenuItems['Next Page'] = {'function':MemberChannels, 'functionArgs':{'title':title, 'url':url, 'page':int(page)+1}, 'nextPage':True}
+		memberChannelMenuItems['Next Page'] = {'function':ListMemberChannels, 'functionArgs':{'title':title, 'url':url, 'page':int(page)+1}, 'nextPage':True}
 	
 	return GenerateMenu(title, memberChannelMenuItems)
 
 @route(ROUTE_PREFIX + '/members/channels/subscribed')
-def MemberSubscribedChannels(url, title="Member's Subscribed Channels"):
+def ListMemberSubscribedChannels(url, title="Member's Subscribed Channels"):
 	
 	# Create a dictionary of menu items
 	memberSubscribedChannelMenuItems = OrderedDict()
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of subscribed Channels
-	channels = html.xpath("//div[contains(@class, 'channelSubWidgetContainer')]/ul/li[contains(@class, 'channelSubChannelWig')]")
+	# Get list of channels
+	channels = SharedCodeService.PHMembers.GetMemberSubscribedChannels(url)
 	
 	for channel in channels:
-		# Use xPath to extract Channel details
-		channelTitle =	channel.xpath("./div/div[contains(@class, 'wtitle')]/a/text()")[0]
-		channelURL =	BASE_URL + channel.xpath("./div/div[contains(@class, 'wtitle')]/a/@href")[0] + "/videos"
-		channelThumb =	channel.xpath("./div/div/a/img/@src")[0]
 		
 		# Add a menu item for the Channel
-		memberSubscribedChannelMenuItems[channelTitle] = {'function':BrowseVideos, 'functionArgs':{'url':channelURL, 'title':channelTitle}, 'directoryObjectArgs':{'thumb':channelThumb}}
+		memberSubscribedChannelMenuItems[channel["title"]] = {
+			'function':			BrowseVideos,
+			'functionArgs':			{'url': BASE_URL + channel["url"], 'title':channel["title"]},
+			'directoryObjectArgs':	{'thumb': channel["thumbnail"]}
+		}
 	
 	return GenerateMenu(title, memberSubscribedChannelMenuItems)
 
 @route(ROUTE_PREFIX + '/members/pornstars')
-def MemberSubscribedPornStars(url, title="Member's Subscribed Porn Stars"):
+def ListMemberSubscribedPornStars(url, title="Member's Subscribed Porn Stars"):
 	
 	# Create a dictionary of menu items
 	memberSubscribedPornStarsMenuItems = OrderedDict()
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of subscribed Porn Stars
-	pornStars = html.xpath("//ul[contains(@class,'pornStarGrid')]/li/div[contains(@class,'user-flag')]/div[contains(@class,'avatarWrap')]/a")
+	# Get list of porn stars
+	pornStars = SharedCodeService.PHMembers.GetMemberSubscribedPornStars(url)
 	
 	for pornStar in pornStars:
-		# Use xPath to extract Porn Star details
-		pornStarTitle =	pornStar.xpath("./img/@alt")[0]
-		pornStarURL =	BASE_URL + pornStar.xpath("./@href")[0]
-		pornStarThumb =	pornStar.xpath("./img/@src")[0]
 		
 		# Add a menu item for the Porn Star
-		memberSubscribedPornStarsMenuItems[pornStarTitle] = {'function':BrowseVideos, 'functionArgs':{'url':pornStarURL, 'title':pornStarTitle}, 'directoryObjectArgs':{'thumb':pornStarThumb}}
+		memberSubscribedPornStarsMenuItems[pornStar["title"]] = {
+			'function':			BrowseVideos,
+			'functionArgs':			{'url': BASE_URL + pornStar["url"], 'title':pornStar["title"]},
+			'directoryObjectArgs':	{'thumb': pornStar["thumbnail"]}
+		}
 	
 	return GenerateMenu(title, memberSubscribedPornStarsMenuItems)
