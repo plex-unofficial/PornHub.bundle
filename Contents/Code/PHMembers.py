@@ -77,8 +77,6 @@ def MemberMenu(title, url, username):
 	
 	# Get the HTML of the Member's spash page, as well as their Video and Playlist pages
 	memberHTML =		HTML.ElementFromURL(url)
-	memberVideosHTML =	HTML.ElementFromURL(url + '/videos')
-	memberPlaylistsHTML =	HTML.ElementFromURL(url + '/playlists')
 	
 	# Create a dictionary of menu items
 	memberMenuItems = OrderedDict([

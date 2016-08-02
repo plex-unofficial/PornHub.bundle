@@ -18,7 +18,7 @@ def BrowsePlaylists(title=L("DefaultBrowsePlaylistsTitle")):
 		('Most Viewed - All Time',	{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'a'})}}),
 		('Most Viewed - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'m'})}}),
 		('Most Viewed - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'w'})}}),
-		('Most Viewed - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'d'})}}),
+		('Most Viewed - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'t'})}}),
 		('Most Favorited',			{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mf'})}})
 	])
 	
