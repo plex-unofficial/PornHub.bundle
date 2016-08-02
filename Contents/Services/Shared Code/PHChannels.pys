@@ -1,3 +1,5 @@
+PH_CHANNEL_HOVER_URL =		'http://pornhub.com' + '/channel/hover?id=%s'
+
 def GetChannels(url):
 	# Create an empty list to hold the channels
 	channels = []
@@ -19,3 +21,13 @@ def GetChannels(url):
 		})
 	
 	return channels
+
+def GetChannelHoverMetaData(channelID):
+	# Fetch the porn star hover HTML
+	channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
+	
+	return {
+		'name':		channelHoverHTML.xpath("//div[contains(@class, 'avatarUserInfo')]/a[contains(@class,'username')]/text()")[0],
+		'url':		channelHoverHTML.xpath("//div[contains(@class, 'avatarUserInfo')]/a[contains(@class,'username')]/@href")[0],
+		'thumbnail':	channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+	}

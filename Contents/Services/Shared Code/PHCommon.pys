@@ -1,4 +1,5 @@
 import json
+import time
 
 PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
@@ -20,7 +21,7 @@ def GetVideoMetaDataJSON(htmlElement = None, url = None):
 
 def GetVideos(url):
 	# Create an empty list to hold the categories
-	videos = [];
+	videos = []
 	
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
@@ -72,7 +73,7 @@ def GetVideos(url):
 
 def GetVideoThumbnailURLs(url):
 	# Create an empty list to hold the thumbnail URLs
-	thumbnailURLs = [];
+	thumbnailURLs = []
 	
 	# Get the video meta data
 	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(url=url)
@@ -88,3 +89,63 @@ def GetVideoThumbnailURLs(url):
 				thumbnailURLs.append(videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg"))
 	
 	return thumbnailURLs
+
+def GetRelatedVideos(url):
+	# Create an empty list to hold the relatedVideos
+	relatedVideos = []
+	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract the related videos
+	relatedVideoElements = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+	
+	# Loop through related videos
+	for relatedVideoElement in relatedVideoElements:
+		relatedVideos.append({
+			'title':		relatedVideoElement.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/text()")[0],
+			'url':		relatedVideoElement.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0],
+			'thumbnail':	relatedVideoElement.xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+		})
+	
+	return relatedVideos
+
+def GetPlaylistsContainingVideo(url):
+	# Create an empty list to hold the playlists
+	playlists = []
+	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract the playlists
+	playlistElements = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
+	
+	# Loop through playlists
+	for playlistElement in playlistElements:
+		playlists.append({
+			'title':		playlistElement.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/text()")[0],
+			'url':		playlistElement.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/@href")[0],
+			'thumbnail':	playlistElement.xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
+		})
+	
+	return playlists
+
+def GetVideoActions(url):
+	# Create an empty list to hold the actions
+	actions = []
+	
+	# Get the video meta data
+	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(url=url)
+	
+	if (videoMetaData and videoMetaData["actionTags"]):
+		actionTags = videoMetaData["actionTags"].split(",")
+		
+		for actionTag in actionTags:
+			actionSegments =	actionTag.split(":")
+			
+			actions.append({
+				'title':		actionSegments[0],
+				'timestamp':	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
+			})
+	
+	return actions

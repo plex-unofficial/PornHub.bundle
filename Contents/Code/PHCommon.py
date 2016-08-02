@@ -1,4 +1,3 @@
-import time
 import urllib
 import urlparse
 from collections import OrderedDict
@@ -9,8 +8,6 @@ BASE_URL =				'http://pornhub.com'
 PH_VIDEO_URL =				BASE_URL + '/video'
 PH_VIDEO_SEARCH_URL =		PH_VIDEO_URL + '/search?search=%s'
 
-PH_PORNSTAR_HOVER_URL =		BASE_URL + '/pornstar/hover?id=%s'
-PH_CHANNEL_HOVER_URL =		BASE_URL + '/channel/hover?id=%s'
 PH_USER_HOVER_URL =		BASE_URL + '/user/hover?id=%s'
 
 MAX_VIDEOS_PER_PAGE =			44
@@ -130,9 +127,6 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Create the object to contain all of the videos options
 	oc = ObjectContainer(title2 = title, no_cache=True)
 	
-	# Create an empty object for video metadata
-	videoMetaData = {}
-	
 	# Create the Video Clip Object
 	vco =	URLService.MetadataObjectForURL(url)
 	
@@ -152,7 +146,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	html =		HTML.ElementFromURL(url)
 	
 	# Get the video meta data
-	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(url)
+	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(htmlElement=html)
 		
 	# Check to see if Thumbnails are enabled in the video sub menu in the Preferences, and also if the Thumbnail metadata exists
 	if (Prefs["videoMenuShowThumbnails"] and videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
@@ -184,16 +178,14 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 				if (uploaderType == "channel"):
 					channelID =	uploader[0].xpath("./@data-channelid")[0]
 					
-					# Fetch the thumbnail
-					channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
-					
-					channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+					# Get the porn star hover meta data
+					channelHoverMetaData = SharedCodeService.PHChannels.GetChannelHoverMetaData(channelID)
 					
 					oc.add(DirectoryObject(
 						key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
 						title =	uploaderName,
 						summary =	"Channel this video appears in",
-						thumb =	channelThumbnail
+						thumb =	channelHoverMetaData["thumbnail"]
 					))
 				elif (uploaderType == "user"):
 					pass
@@ -294,16 +286,14 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 	pornStarURL =	BASE_URL + pornStarElement.xpath("./@href")[0]
 	pornStarName =	pornStarElement.xpath("./text()")[0]
 	
-	# Fetch the thumbnail
-	pornStarHoverHTML = HTML.ElementFromURL(PH_PORNSTAR_HOVER_URL % pornStarID)
-	
-	pornStarThumbnail = pornStarHoverHTML.xpath("//div[@id='psBoxPictureContainer']/img/@src")[0]
+	# Get the porn star hover meta data
+	pornStarHoverMetaData = SharedCodeService.PHPornStars.GetPornStarHoverMetaData(pornStarID)
 	
 	return DirectoryObject(
 		key =	Callback(BrowseVideos, url=pornStarURL, title=pornStarName),
 		title =	pornStarName,
 		summary =	"Porn Star appearing in this video",
-		thumb =	pornStarThumbnail
+		thumb =	pornStarHoverMetaData["thumbnail"]
 	)
 
 @route(ROUTE_PREFIX + '/video/thumbnails')
@@ -330,23 +320,17 @@ def RelatedVideos(url, title="Related Videos"):
 	# Create the object to contain the related videos
 	oc = ObjectContainer(title2=title)
 	
-	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract the related videos
-	relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+	# Get the video thumbnail URLs
+	relatedVideos = SharedCodeService.PHCommon.GetRelatedVideos(url)
 	
 	# Loop through related videos
 	for relatedVideo in relatedVideos:
-		relatedVideoTitle =	relatedVideo.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/text()")[0]
-		relatedVideoURL =	BASE_URL + relatedVideo.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0]
-		relatedVideoThumb =	relatedVideo.xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
 		
 		oc.add(DirectoryObject(
-			key =	Callback(VideoMenu, url=relatedVideoURL, title=relatedVideoTitle),
-			title =	relatedVideoTitle,
-			summary =	relatedVideoTitle,
-			thumb =	relatedVideoThumb
+			key =	Callback(VideoMenu, url=BASE_URL + relatedVideo["url"], title=relatedVideo["title"]),
+			title =	relatedVideo["title"],
+			summary =	relatedVideo["title"],
+			thumb =	relatedVideo["thumbnail"]
 		))
 	
 	return oc
@@ -356,22 +340,16 @@ def PlaylistsContainingVideo(url, title="Playlists Containing Video"):
 	# Create the object to contain the playlists
 	oc = ObjectContainer(title2=title)
 	
-	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract the playlists
-	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
+	# Get the playlists containing the video
+	playlists = SharedCodeService.PHCommon.GetPlaylistsContainingVideo(url)
 	
 	# Loop through playlists
 	for playlist in playlists:
-		playlistTitle =	playlist.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/text()")[0]
-		playlistURL =	BASE_URL + playlist.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/@href")[0]
-		playlistThumb =	playlist.xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
 		
 		oc.add(DirectoryObject(
-			key =	Callback(BrowseVideos, url=playlistURL, title=playlistTitle),
-			title =	playlistTitle,
-			thumb =	playlistThumb
+			key =	Callback(BrowseVideos, url=BASE_URL + playlist["url"], title=playlist["title"]),
+			title =	playlist["title"],
+			thumb =	playlist["thumbnail"]
 		))
 	
 	return oc
@@ -388,32 +366,18 @@ def VideoActions(url, title="Actions", header=None, message=None, replace_parent
 	if (replace_parent):
 		oc.replace_parent =	replace_parent
 	
-	# Get the HTML of the site
-	html =		HTML.ElementFromURL(url)
-	htmlString =	HTML.StringFromElement(html)
+	# Get the playlists containing the video
+	actions = SharedCodeService.PHCommon.GetVideoActions(url)
 	
-	# Search for the video metadata JSON string
-	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
-	
-	if (videoMetaDataString):
-		# If found, convert the JSON string to an object
-		videoMetaData = json.loads(videoMetaDataString.group(1))
+	for action in actions:
 		
-		if (videoMetaData["actionTags"]):
-			actions = videoMetaData["actionTags"].split(",")
-			
-			for action in actions:
-				actionSegments =	action.split(":")
-				
-				actionTimestamp =	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
-				actionTitle =		actionSegments[0]
-				actionSummary =		actionTitle + " starts at " + actionTimestamp
-				
-				oc.add(DirectoryObject(
-					key =	Callback(VideoActions, url=url, title=title, header=actionTitle, message=actionSummary, replace_parent=True),
-					title =	actionTimestamp + ": " + actionTitle,
-					summary =	actionSummary
-				))
+		actionSummary = action["title"] + " starts at " + action["timestamp"]
+		
+		oc.add(DirectoryObject(
+			key =	Callback(VideoActions, url=url, title=title, header=action["title"], message=actionSummary, replace_parent=True),
+			title =	action["timestamp"] + ": " + action["title"],
+			summary =	actionSummary
+		))
 	
 	return oc
 
