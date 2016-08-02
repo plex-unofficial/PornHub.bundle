@@ -1,0 +1,90 @@
+import json
+
+PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
+
+def GetVideoMetaDataJSON(htmlElement = None, url = None):
+	# Get the HTML of the site
+	if (htmlElement is None):
+		htmlElement =		HTML.ElementFromURL(url)
+	
+	htmlString =	HTML.StringFromElement(htmlElement)
+	
+	# Search for the video metadata JSON string
+	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	
+	if (videoMetaDataString):
+		# If found, convert the JSON string to an object
+		return json.loads(videoMetaDataString.group(1))
+	else:
+		return None
+
+def GetVideos(url):
+	# Create an empty list to hold the categories
+	videos = [];
+	
+	# Get the HTML of the site
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of divs that contain videos
+	videoElements = html.xpath("//li[contains(@class,'videoblock')]")
+	
+	# This piece of code is ridiculous. From the best I can gether, the poorly formed HTML on PornHub makes xPath choke at 123 videos. So I rounded it down to 120 and limited the videos to that. This should only affect playlists, but it is a really ridiculous problem
+	if (len(videoElements) >= 120):
+		videoElements =	videoElements[0:120]
+	
+	# Loop through the videos in the page
+	for videoElement in videoElements:
+		
+		# Use xPath to extract video details
+		video = {
+			'title':		videoElement.xpath("./div/div/a/div[contains(@class, 'thumbnail-info-wrapper')]/span[@class='title']/a/text()")[0],
+			'url':		videoElement.xpath("./div/div/a/@href")[0],
+			'thumbnail':	videoElement.xpath("./div/div/a/div[@class='img']/img/@data-mediumthumb")[0]
+		}
+		
+		# Get the duration of the video
+		durationString =	videoElement.xpath("./div/div/a/div[@class='img']/div[@class='marker-overlays']/var[@class='duration']/text()")[0]
+		
+		# Split it into a list separated by colon
+		durationArray =	durationString.split(":")
+		
+		if (len(durationArray) == 2):
+			# Dealing with MM:SS
+			minutes =	int(durationArray[0])
+			seconds =	int(durationArray[1])
+			
+			video["duration"] = (minutes*60 + seconds) * 1000
+			
+		elif (len(durationArray) == 3):
+			# Dealing with HH:MM:SS... PornHub doesn't do this, but I'll keep it as a backup anyways
+			hours =	int(durationArray[0])
+			minutes =	int(durationArray[1])
+			seconds =	int(durationArray[2])
+			
+			video["duration"] = (hours*3600 + minutes * 60 + seconds) * 1000
+		else:
+			# Set a default duration of 0
+			video["duration"] = 0
+		
+		videos.append(video)
+	
+	return videos
+
+def GetVideoThumbnailURLs(url):
+	# Create an empty list to hold the thumbnail URLs
+	thumbnailURLs = [];
+	
+	# Get the video meta data
+	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(url=url)
+	
+	if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"] != False):
+		
+		videoThumbnailsCount =	Regex("/S{(\d+)}.jpg").search(videoMetaData["thumbs"]["urlPattern"])
+		
+		if (videoThumbnailsCount):
+			videoThumbnailsCountString = videoThumbnailsCount.group(1)
+			
+			for i in range(int(videoThumbnailsCountString) + 1):
+				thumbnailURLs.append(videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg"))
+	
+	return thumbnailURLs

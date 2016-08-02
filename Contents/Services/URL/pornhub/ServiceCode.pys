@@ -1,9 +1,8 @@
-import json
+import PHCommon
 
 PH_POTENTIAL_RESOLUTIONS =		["1080", "720", "480", "240", "180"]
 
 PH_VIDEO_URL_REGEX =			"var player_quality_%sp = '([^']+)'"
-PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
 def NormalizeURL(url):
 
@@ -13,14 +12,11 @@ def MetadataObjectForURL(url):
 	
 	# Get the HTML string from the given URL
 	html =		HTML.ElementFromURL(url)
-	htmlString =	HTML.StringFromElement(html)
 	
-	# Search for the video metadata JSON string
-	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
+	# Get the video meta data
+	videoMetaData = PHCommon.GetVideoMetaDataJSON(htmlElement=html)
 	
-	if (videoMetaDataString):
-		# If found, convert the JSON string to an object
-		videoMetaData = json.loads(videoMetaDataString.group(1))
+	if (videoMetaData):
 		
 		return VideoClipObject(
 			title =		videoMetaData["video_title"],
@@ -53,12 +49,8 @@ def MediaObjectsForURL(url):
 	html =		HTML.ElementFromURL(url)
 	htmlString =	HTML.StringFromElement(html)
 	
-	# Search for the video metadata JSON string
-	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
-	
-	if videoMetaDataString:
-		# If found, convert the JSON string to an object
-		videoMetaData = json.loads(videoMetaDataString.group(1))
+	# Get the video meta data
+	videoMetaData = PHCommon.GetVideoMetaDataJSON(htmlElement=html)
 	
 	# Loop through all potential resolutions
 	for resolution in PH_POTENTIAL_RESOLUTIONS:
@@ -83,7 +75,7 @@ def MediaObjectsForURL(url):
 			)
 			
 			# Check to see if extra metadata is available
-			if videoMetaDataString:
+			if videoMetaData:
 				mediaObject.duration =		int(videoMetaData["video_duration"]) * 1000
 			
 			mediaObjects.append(mediaObject)
