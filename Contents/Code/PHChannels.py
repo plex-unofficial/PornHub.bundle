@@ -10,10 +10,10 @@ def BrowseChannels(title="DefaultBrowseChannelsTitle"):
 	# Create a dictionary of menu items
 	browseChannelsMenuItems = OrderedDict([
 		('Search Channels',	{'function':SearchChannels, 'search':True, 'directoryObjectArgs':{'prompt':'Search for...','summary':'Enter Channel Search Terms'}}),
-		('Most Popular',	{'function':ListChannels, 'functionArgs':{'url':addURLParameters(PH_CHANNELS_URL, {'o':'rk'})}}),
-		('Trending',		{'function':ListChannels, 'functionArgs':{'url':addURLParameters(PH_CHANNELS_URL, {'o':'tr'})}}),
-		('Most Recent',		{'function':ListChannels, 'functionArgs':{'url':addURLParameters(PH_CHANNELS_URL, {'o':'mr'})}}),
-		('A-Z',			{'function':ListChannels, 'functionArgs':{'url':addURLParameters(PH_CHANNELS_URL, {'o':'al'})}})
+		('Most Popular',	{'function':ListChannels, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_CHANNELS_URL, {'o':'rk'})}}),
+		('Trending',		{'function':ListChannels, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_CHANNELS_URL, {'o':'tr'})}}),
+		('Most Recent',		{'function':ListChannels, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_CHANNELS_URL, {'o':'mr'})}}),
+		('A-Z',			{'function':ListChannels, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_CHANNELS_URL, {'o':'al'})}})
 	])
 	
 	return GenerateMenu(title, browseChannelsMenuItems)
@@ -26,7 +26,7 @@ def ListChannels(title, url = PH_CHANNELS_URL, page=1):
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
 	# Get list of channels
 	channels = SharedCodeService.PHChannels.GetChannels(url)
@@ -51,7 +51,7 @@ def ListChannels(title, url = PH_CHANNELS_URL, page=1):
 def SearchChannels(query):
 	
 	# Format the query for use in PornHub's search
-	formattedQuery = formatStringForSearch(query, "+")
+	formattedQuery = SharedCodeService.PHCommon.FormatStringForSearch(query, "+")
 	
 	try:
 		return ListChannels(title='Search Results for ' + query, url=PH_CHANNEL_SEARCH_URL % query)

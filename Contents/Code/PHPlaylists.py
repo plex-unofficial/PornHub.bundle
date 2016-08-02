@@ -10,16 +10,16 @@ def BrowsePlaylists(title=L("DefaultBrowsePlaylistsTitle")):
 	
 	# Create a dictionary of menu items
 	browsePlaylistsMenuItems = OrderedDict([
-		('Most Recent',				{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mr'})}}),
-		('Top Rated - All Time',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'a'})}}),
-		('Top Rated - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'m'})}}),
-		('Top Rated - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'w'})}}),
-		('Top Rated - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'t'})}}),
-		('Most Viewed - All Time',	{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'a'})}}),
-		('Most Viewed - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'m'})}}),
-		('Most Viewed - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'w'})}}),
-		('Most Viewed - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'d'})}}),
-		('Most Favorited',			{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mf'})}})
+		('Most Recent',				{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mr'})}}),
+		('Top Rated - All Time',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'a'})}}),
+		('Top Rated - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'m'})}}),
+		('Top Rated - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'w'})}}),
+		('Top Rated - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'t'})}}),
+		('Most Viewed - All Time',	{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'a'})}}),
+		('Most Viewed - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'m'})}}),
+		('Most Viewed - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'w'})}}),
+		('Most Viewed - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'d'})}}),
+		('Most Favorited',			{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mf'})}})
 	])
 	
 	return GenerateMenu(title, browsePlaylistsMenuItems)
@@ -32,7 +32,7 @@ def ListPlaylists(title, url = PH_PLAYLISTS_URL, page=1):
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
 	# Get list of playlists
 	playlists = SharedCodeService.PHPlaylists.GetPlaylists(url)

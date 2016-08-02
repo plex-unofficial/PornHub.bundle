@@ -1,5 +1,3 @@
-import urllib
-import urlparse
 from collections import OrderedDict
 
 ROUTE_PREFIX =				'/video/pornhub'
@@ -65,7 +63,7 @@ def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOr
 	for sortTitle, urlParams in sortOrders.items():
 		
 		# Add a menu item for the category
-		browseVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':addURLParameters(url, urlParams)}}
+		browseVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(url, urlParams)}}
 	
 	return GenerateMenu(title, browseVideosMenuItems)
 
@@ -77,7 +75,7 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
 	# This could definitely be handled more gracefully. But it works for now
 	if ("/video/search" in url):
@@ -256,7 +254,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 def SearchVideos(query):
 	
 	# Format the query for use in PornHub's search
-	formattedQuery = formatStringForSearch(query, "+")
+	formattedQuery = SharedCodeService.PHCommon.FormatStringForSearch(query, "+")
 	
 	try:
 		return ListVideos(title='Search Results For ' + query, url=PH_VIDEO_SEARCH_URL % formattedQuery)
@@ -419,34 +417,3 @@ def GenerateMenu(title, menuItems, no_cache=False):
 		oc.add(directoryObject)
 	
 	return oc
-
-# I stole this function from http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python. It works.
-def addURLParameters (url, params):
-	
-	urlParts =	list(urlparse.urlparse(url))
-	
-	urlQuery =	dict(urlparse.parse_qsl(urlParts[4]))
-	urlQuery.update(params)
-	
-	# So... PornHub requires that it's query string parameters are set in the right order... for some reason. This piece of code handles that. It's retarded, but it has to be done
-	urlQueryOrder = ['c', 'channelSearch', 'search', 'username', 'o', 't', 'page']
-	
-	urlQueryOrdered = OrderedDict()
-	
-	for i in urlQueryOrder:
-		if i in urlQuery:
-			urlQueryOrdered[i] = urlQuery[i] 
-
-	urlParts[4] = urllib.urlencode(urlQueryOrdered)
-
-	return urlparse.urlunparse(urlParts)
-
-# I stole this function (and everything I did for search basically) from the RedTube Plex Plugin, this file specifically https://github.com/flownex/RedTube.bundle/blob/master/Contents/Code/PCbfSearch.py
-def formatStringForSearch(query, delimiter):
-	query = String.StripTags(str(query))
-	query = query.replace('%20',' ')
-	query = query.replace('  ',' ')
-	query = query.strip(' \t\n\r')
-	query = delimiter.join(query.split())
-	
-	return query

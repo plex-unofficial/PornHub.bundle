@@ -40,7 +40,7 @@ def ListMembers(title, url=PH_DISCOVER_MEMBERS_URL, page=1, pageLimit=PH_MAX_MEM
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
 	# Get list of members
 	members = SharedCodeService.PHMembers.GetMembers(url)
@@ -65,7 +65,7 @@ def ListMembers(title, url=PH_DISCOVER_MEMBERS_URL, page=1, pageLimit=PH_MAX_MEM
 def SearchMembers(query):
 	
 	# Format the query for use in PornHub's search
-	formattedQuery = formatStringForSearch(query, "+")
+	formattedQuery = SharedCodeService.PHCommon.FormatStringForSearch(query, "+")
 	
 	try:
 		return ListMembers(title='Search Results for ' + query, url=PH_SEARCH_MEMBERS_URL % formattedQuery)
@@ -209,7 +209,7 @@ def ListMemberChannels(url, title="Member Channels", page=1):
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
 	# Get list of channels
 	channels = SharedCodeService.PHMembers.GetMemberChannels(url)

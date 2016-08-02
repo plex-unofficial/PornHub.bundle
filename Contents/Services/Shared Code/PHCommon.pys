@@ -1,5 +1,8 @@
 import json
 import time
+import urllib
+import urlparse
+from collections import OrderedDict
 
 PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
@@ -149,3 +152,34 @@ def GetVideoActions(url):
 			})
 	
 	return actions
+
+# I stole this function from http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python. It works.
+def AddURLParameters (url, params):
+	
+	urlParts =	list(urlparse.urlparse(url))
+	
+	urlQuery =	dict(urlparse.parse_qsl(urlParts[4]))
+	urlQuery.update(params)
+	
+	# So... PornHub requires that it's query string parameters are set in the right order... for some reason. This piece of code handles that. It's retarded, but it has to be done
+	urlQueryOrder = ['c', 'channelSearch', 'search', 'username', 'o', 't', 'page']
+	
+	urlQueryOrdered = OrderedDict()
+	
+	for i in urlQueryOrder:
+		if i in urlQuery:
+			urlQueryOrdered[i] = urlQuery[i] 
+
+	urlParts[4] = urllib.urlencode(urlQueryOrdered)
+
+	return urlparse.urlunparse(urlParts)
+
+# I stole this function (and everything I did for search basically) from the RedTube Plex Plugin, this file specifically https://github.com/flownex/RedTube.bundle/blob/master/Contents/Code/PCbfSearch.py
+def FormatStringForSearch(query, delimiter):
+	query = String.StripTags(str(query))
+	query = query.replace('%20',' ')
+	query = query.replace('  ',' ')
+	query = query.strip(' \t\n\r')
+	query = delimiter.join(query.split())
+	
+	return query
