@@ -1,3 +1,5 @@
+PH_MEMBER_HOVER_URL =		'http://pornhub.com' + '/user/hover?id=%s'
+
 def GetMemberSortOrders(url):
 	# Create an empty list to hold the sort orders
 	sortOrders = []
@@ -100,3 +102,13 @@ def GetMemberSubscribedPornStars(url):
 		})
 	
 	return pornStars
+
+def GetMemberHoverMetaData(memberID):
+	# Fetch the porn star hover HTML
+	memberHoverHTML = HTML.ElementFromURL(PH_MEMBER_HOVER_URL % memberID)
+	
+	return {
+		'name':		memberHoverHTML.xpath("//div[contains(@class, 'avatarUserInfo')]/a[contains(@class,'username')]/text()")[0],
+		'url':		memberHoverHTML.xpath("//div[contains(@class, 'avatarUserInfo')]/a[contains(@class,'username')]/@href")[0],
+		'thumbnail':	memberHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+	}
