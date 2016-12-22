@@ -1,7 +1,3 @@
-import json
-import time
-import urllib
-import urlparse
 from collections import OrderedDict
 
 ROUTE_PREFIX =				'/video/pornhub'
@@ -10,8 +6,6 @@ BASE_URL =				'http://pornhub.com'
 PH_VIDEO_URL =				BASE_URL + '/video'
 PH_VIDEO_SEARCH_URL =		PH_VIDEO_URL + '/search?search=%s'
 
-PH_PORNSTAR_HOVER_URL =		BASE_URL + '/pornstar/hover?id=%s'
-PH_CHANNEL_HOVER_URL =		BASE_URL + '/channel/hover?id=%s'
 PH_USER_HOVER_URL =		BASE_URL + '/user/hover?id=%s'
 
 MAX_VIDEOS_PER_PAGE =			44
@@ -20,8 +14,6 @@ MAX_VIDEOS_PER_SEARCH_PAGE =		20
 MAX_VIDEOS_PER_CHANNEL_PAGE =	36
 MAX_VIDEOS_PER_PORNSTAR_PAGE =	36
 MAX_VIDEOS_PER_USER_PAGE =		48
-
-PH_VIDEO_METADATA_JSON_REGEX =	"var flashvars_\d+ = ({[\S\s]+?});"
 
 SORT_ORDERS = OrderedDict([
 	('Most Recent',					{'o':'mr'}),
@@ -71,7 +63,7 @@ def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOr
 	for sortTitle, urlParams in sortOrders.items():
 		
 		# Add a menu item for the category
-		browseVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':addURLParameters(url, urlParams)}}
+		browseVideosMenuItems[sortTitle] = {'function':ListVideos, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(url, urlParams)}}
 	
 	return GenerateMenu(title, browseVideosMenuItems)
 
@@ -83,7 +75,7 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
 	# This could definitely be handled more gracefully. But it works for now
 	if ("/video/search" in url):
@@ -98,65 +90,25 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 		# In the Browse All Videos and Categories menus, they display MAX_VIDEOS_PER_PAGE_PAGE_ONE on page one, and MAX_VIDEOS_PER_PAGE from page two onward
 		pageLimit =	MAX_VIDEOS_PER_PAGE
 	
-	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of divs that contain videos
-	videos = html.xpath("//li[contains(@class,'videoblock')]")
-	
-	# This piece of code is ridiculous. From the best I can gether, the poorly formed HTML on PornHub makes xPath choke at 123 videos. So I rounded it down to 120 and limited the videos to that. This should only affect playlists, but it is a really ridiculous problem
-	if (len(videos) >= 120):
-		videos =	videos[0:119]
+	# Get list of categories
+	videos = SharedCodeService.PHCommon.GetVideos(url)
 	
 	# Loop through the videos in the page
 	for video in videos:
 		
-		# Get the link of the video
-		videoURL = video.xpath("./div/div/a/@href")[0]
-		
 		# Check for relative URLs
-		if (videoURL.startswith('/')):
-			videoURL = BASE_URL + videoURL
+		if (video["url"].startswith('/')):
+			video["url"] = BASE_URL + video["url"]
 		
 		# Make sure the last step went smoothly (this is probably redundant but oh well)
-		if (videoURL.startswith(BASE_URL)):
-			# Use xPath to extract video details
-			videoTitle =	video.xpath("./div/div/a/div[contains(@class, 'thumbnail-info-wrapper')]/span[@class='title']/a/text()")[0]
-			thumbnail =	video.xpath("./div/div/a/div[@class='img']/img/@data-mediumthumb")[0]
-			
-			# Get the duration of the video
-			durationString =	video.xpath("./div/div/a/div[@class='img']/div[@class='marker-overlays']/var[@class='duration']/text()")[0]
-			
-			# Split it into a list separated by colon
-			durationArray =	durationString.split(":")
-			
-			# Set a default duration of 0
-			duration = 0
-			
-			if (len(durationArray) == 2):
-				# Dealing with MM:SS
-				minutes =	int(durationArray[0])
-				seconds =	int(durationArray[1])
-				
-				duration = (minutes*60 + seconds) * 1000
-				
-			elif (len(durationArray) == 3):
-				# Dealing with HH:MM:SS... PornHub doesn't do this, but I'll keep it as a backup anyways
-				hours =	int(durationArray[0])
-				minutes =	int(durationArray[1])
-				seconds =	int(durationArray[2])
-				
-				duration = (hours*3600 + minutes * 60 + seconds) * 1000
-			else:
-				# WTF
-				pass
+		if (video["url"].startswith(BASE_URL)):
 			
 			# Add a Directory Object for the video to the Object Container
 			oc.add(DirectoryObject(
-				key =	Callback(VideoMenu, url=videoURL, title=videoTitle, duration=duration),
-				title =	videoTitle,
-				thumb =	thumbnail,
-				duration =	duration
+				key =	Callback(VideoMenu, url=video["url"], title=video["title"], duration=video["duration"]),
+				title =	video["title"],
+				thumb =	video["thumbnail"],
+				duration =	video["duration"]
 			))
 	
 	# There is a slight change that this will break... If the number of videos returned in total is divisible by MAX_VIDEOS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
@@ -172,9 +124,6 @@ def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, page
 def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	# Create the object to contain all of the videos options
 	oc = ObjectContainer(title2 = title, no_cache=True)
-	
-	# Create an empty object for video metadata
-	videoMetaData = {}
 	
 	# Create the Video Clip Object
 	vco =	URLService.MetadataObjectForURL(url)
@@ -193,14 +142,9 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 	
 	# Get the HTML of the site
 	html =		HTML.ElementFromURL(url)
-	htmlString =	HTML.StringFromElement(html)
 	
-	# Search for the video metadata JSON string
-	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
-	
-	if (videoMetaDataString):
-		# If found, convert the JSON string to an object
-		videoMetaData = json.loads(videoMetaDataString.group(1))
+	# Get the video meta data
+	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(htmlElement=html)
 		
 	# Check to see if Thumbnails are enabled in the video sub menu in the Preferences, and also if the Thumbnail metadata exists
 	if (Prefs["videoMenuShowThumbnails"] and videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"]):
@@ -232,16 +176,14 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 				if (uploaderType == "channel"):
 					channelID =	uploader[0].xpath("./@data-channelid")[0]
 					
-					# Fetch the thumbnail
-					channelHoverHTML = HTML.ElementFromURL(PH_CHANNEL_HOVER_URL % channelID)
-					
-					channelThumbnail = channelHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+					# Get the porn star hover meta data
+					channelHoverMetaData = SharedCodeService.PHChannels.GetChannelHoverMetaData(channelID)
 					
 					oc.add(DirectoryObject(
 						key =	Callback(BrowseVideos, url=uploaderURL + '/videos', title=uploaderName),
 						title =	uploaderName,
 						summary =	"Channel this video appears in",
-						thumb =	channelThumbnail
+						thumb =	channelHoverMetaData["thumbnail"]
 					))
 				elif (uploaderType == "user"):
 					pass
@@ -312,7 +254,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 def SearchVideos(query):
 	
 	# Format the query for use in PornHub's search
-	formattedQuery = formatStringForSearch(query, "+")
+	formattedQuery = SharedCodeService.PHCommon.FormatStringForSearch(query, "+")
 	
 	try:
 		return ListVideos(title='Search Results For ' + query, url=PH_VIDEO_SEARCH_URL % formattedQuery)
@@ -342,16 +284,14 @@ def GenerateVideoPornStarDirectoryObject(pornStarElement):
 	pornStarURL =	BASE_URL + pornStarElement.xpath("./@href")[0]
 	pornStarName =	pornStarElement.xpath("./text()")[0]
 	
-	# Fetch the thumbnail
-	pornStarHoverHTML = HTML.ElementFromURL(PH_PORNSTAR_HOVER_URL % pornStarID)
-	
-	pornStarThumbnail = pornStarHoverHTML.xpath("//div[@id='psBoxPictureContainer']/img/@src")[0]
+	# Get the porn star hover meta data
+	pornStarHoverMetaData = SharedCodeService.PHPornStars.GetPornStarHoverMetaData(pornStarID)
 	
 	return DirectoryObject(
 		key =	Callback(BrowseVideos, url=pornStarURL, title=pornStarName),
 		title =	pornStarName,
 		summary =	"Porn Star appearing in this video",
-		thumb =	pornStarThumbnail
+		thumb =	pornStarHoverMetaData["thumbnail"]
 	)
 
 @route(ROUTE_PREFIX + '/video/thumbnails')
@@ -359,33 +299,17 @@ def VideoThumbnails(url, title="Thumbnails"):
 	# Create the object to contain the thumbnails
 	oc = ObjectContainer(title2=title)
 	
-	# Get the HTML of the site
-	html =		HTML.ElementFromURL(url)
-	htmlString =	HTML.StringFromElement(html)
+	# Get the video thumbnail URLs
+	thumbnailURLs = SharedCodeService.PHCommon.GetVideoThumbnailURLs(url)
 	
-	# Search for the video metadata JSON string
-	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
-	
-	if (videoMetaDataString):
-		# If found, convert the JSON string to an object
-		videoMetaData = json.loads(videoMetaDataString.group(1))
+	for i, thumbnailURL in enumerate(thumbnailURLs):
 		
-		if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"] != False):
-			
-			videoThumbnailsCount =	Regex("/S{(\d+)}.jpg").search(videoMetaData["thumbs"]["urlPattern"])
-			
-			if (videoThumbnailsCount):
-				videoThumbnailsCountString = videoThumbnailsCount.group(1)
-				
-				for i in range(int(videoThumbnailsCountString) + 1):
-					thumbnailURL = videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg")
-					
-					oc.add(PhotoObject(
-						key =		thumbnailURL,
-						rating_key =	thumbnailURL,
-						title =		str(i),
-						thumb =		thumbnailURL
-					))
+		oc.add(PhotoObject(
+			key =		thumbnailURL,
+			rating_key =	thumbnailURL,
+			title =		"Thumbnail #" + str(i + 1),
+			thumb =		thumbnailURL
+		))
 	
 	return oc
 
@@ -394,23 +318,17 @@ def RelatedVideos(url, title="Related Videos"):
 	# Create the object to contain the related videos
 	oc = ObjectContainer(title2=title)
 	
-	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract the related videos
-	relatedVideos = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+	# Get the video thumbnail URLs
+	relatedVideos = SharedCodeService.PHCommon.GetRelatedVideos(url)
 	
 	# Loop through related videos
 	for relatedVideo in relatedVideos:
-		relatedVideoTitle =	relatedVideo.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/text()")[0]
-		relatedVideoURL =	BASE_URL + relatedVideo.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0]
-		relatedVideoThumb =	relatedVideo.xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
 		
 		oc.add(DirectoryObject(
-			key =	Callback(VideoMenu, url=relatedVideoURL, title=relatedVideoTitle),
-			title =	relatedVideoTitle,
-			summary =	relatedVideoTitle,
-			thumb =	relatedVideoThumb
+			key =	Callback(VideoMenu, url=BASE_URL + relatedVideo["url"], title=relatedVideo["title"]),
+			title =	relatedVideo["title"],
+			summary =	relatedVideo["title"],
+			thumb =	relatedVideo["thumbnail"]
 		))
 	
 	return oc
@@ -420,22 +338,16 @@ def PlaylistsContainingVideo(url, title="Playlists Containing Video"):
 	# Create the object to contain the playlists
 	oc = ObjectContainer(title2=title)
 	
-	# Get the HTML of the site
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract the playlists
-	playlists = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
+	# Get the playlists containing the video
+	playlists = SharedCodeService.PHCommon.GetPlaylistsContainingVideo(url)
 	
 	# Loop through playlists
 	for playlist in playlists:
-		playlistTitle =	playlist.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/text()")[0]
-		playlistURL =	BASE_URL + playlist.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/@href")[0]
-		playlistThumb =	playlist.xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
 		
 		oc.add(DirectoryObject(
-			key =	Callback(BrowseVideos, url=playlistURL, title=playlistTitle),
-			title =	playlistTitle,
-			thumb =	playlistThumb
+			key =	Callback(BrowseVideos, url=BASE_URL + playlist["url"], title=playlist["title"]),
+			title =	playlist["title"],
+			thumb =	playlist["thumbnail"]
 		))
 	
 	return oc
@@ -452,32 +364,18 @@ def VideoActions(url, title="Actions", header=None, message=None, replace_parent
 	if (replace_parent):
 		oc.replace_parent =	replace_parent
 	
-	# Get the HTML of the site
-	html =		HTML.ElementFromURL(url)
-	htmlString =	HTML.StringFromElement(html)
+	# Get the playlists containing the video
+	actions = SharedCodeService.PHCommon.GetVideoActions(url)
 	
-	# Search for the video metadata JSON string
-	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
-	
-	if (videoMetaDataString):
-		# If found, convert the JSON string to an object
-		videoMetaData = json.loads(videoMetaDataString.group(1))
+	for action in actions:
 		
-		if (videoMetaData["actionTags"]):
-			actions = videoMetaData["actionTags"].split(",")
-			
-			for action in actions:
-				actionSegments =	action.split(":")
-				
-				actionTimestamp =	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
-				actionTitle =		actionSegments[0]
-				actionSummary =		actionTitle + " starts at " + actionTimestamp
-				
-				oc.add(DirectoryObject(
-					key =	Callback(VideoActions, url=url, title=title, header=actionTitle, message=actionSummary, replace_parent=True),
-					title =	actionTimestamp + ": " + actionTitle,
-					summary =	actionSummary
-				))
+		actionSummary = action["title"] + " starts at " + action["timestamp"]
+		
+		oc.add(DirectoryObject(
+			key =	Callback(VideoActions, url=url, title=title, header=action["title"], message=actionSummary, replace_parent=True),
+			title =	action["timestamp"] + ": " + action["title"],
+			summary =	actionSummary
+		))
 	
 	return oc
 
@@ -519,34 +417,3 @@ def GenerateMenu(title, menuItems, no_cache=False):
 		oc.add(directoryObject)
 	
 	return oc
-
-# I stole this function from http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python. It works.
-def addURLParameters (url, params):
-	
-	urlParts =	list(urlparse.urlparse(url))
-	
-	urlQuery =	dict(urlparse.parse_qsl(urlParts[4]))
-	urlQuery.update(params)
-	
-	# So... PornHub requires that it's query string parameters are set in the right order... for some reason. This piece of code handles that. It's retarded, but it has to be done
-	urlQueryOrder = ['c', 'channelSearch', 'search', 'username', 'o', 't', 'page']
-	
-	urlQueryOrdered = OrderedDict()
-	
-	for i in urlQueryOrder:
-		if i in urlQuery:
-			urlQueryOrdered[i] = urlQuery[i] 
-
-	urlParts[4] = urllib.urlencode(urlQueryOrdered)
-
-	return urlparse.urlunparse(urlParts)
-
-# I stole this function (and everything I did for search basically) from the RedTube Plex Plugin, this file specifically https://github.com/flownex/RedTube.bundle/blob/master/Contents/Code/PCbfSearch.py
-def formatStringForSearch(query, delimiter):
-	query = String.StripTags(str(query))
-	query = query.replace('%20',' ')
-	query = query.replace('  ',' ')
-	query = query.strip(' \t\n\r')
-	query = delimiter.join(query.split())
-	
-	return query

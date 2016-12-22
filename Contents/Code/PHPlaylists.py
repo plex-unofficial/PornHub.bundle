@@ -10,16 +10,16 @@ def BrowsePlaylists(title=L("DefaultBrowsePlaylistsTitle")):
 	
 	# Create a dictionary of menu items
 	browsePlaylistsMenuItems = OrderedDict([
-		('Most Recent',				{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mr'})}}),
-		('Top Rated - All Time',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'a'})}}),
-		('Top Rated - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'m'})}}),
-		('Top Rated - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'w'})}}),
-		('Top Rated - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'t'})}}),
-		('Most Viewed - All Time',	{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'a'})}}),
-		('Most Viewed - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'m'})}}),
-		('Most Viewed - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'w'})}}),
-		('Most Viewed - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'d'})}}),
-		('Most Favorited',			{'function':ListPlaylists, 'functionArgs':{'url':addURLParameters(PH_PLAYLISTS_URL, {'o':'mf'})}})
+		('Most Recent',				{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mr'})}}),
+		('Top Rated - All Time',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'a'})}}),
+		('Top Rated - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'m'})}}),
+		('Top Rated - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'w'})}}),
+		('Top Rated - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'tr', 't':'t'})}}),
+		('Most Viewed - All Time',	{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'a'})}}),
+		('Most Viewed - Monthly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'m'})}}),
+		('Most Viewed - Weekly',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'w'})}}),
+		('Most Viewed - Daily',		{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mv', 't':'t'})}}),
+		('Most Favorited',			{'function':ListPlaylists, 'functionArgs':{'url':SharedCodeService.PHCommon.AddURLParameters(PH_PLAYLISTS_URL, {'o':'mf'})}})
 	])
 	
 	return GenerateMenu(title, browsePlaylistsMenuItems)
@@ -32,27 +32,24 @@ def ListPlaylists(title, url = PH_PLAYLISTS_URL, page=1):
 	
 	# Add the page number into the query string
 	if (int(page) != 1):
-		url = addURLParameters(url, {'page':str(page)})
+		url = SharedCodeService.PHCommon.AddURLParameters(url, {'page':str(page)})
 	
-	# Get the HTML of the page
-	html = HTML.ElementFromURL(url)
-	
-	# Use xPath to extract a list of playlists
-	playlists = html.xpath("//ul[contains(@class, 'user-playlist')]/li[contains(@id, 'playlist')]")
+	# Get list of playlists
+	playlists = SharedCodeService.PHPlaylists.GetPlaylists(url)
 	
 	# Loop through all playlists
 	for playlist in playlists:
 		
 		# Make sure Playlist isn't empty
-		if (len(playlist.xpath(".//span[contains(@class,'playlist-videos')]/span[contains(@class,'number')]/span[text()='0']")) < 1):
-			
-			# Use xPath to extract playlist details
-			playlistTitle =		playlist.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/text()")[0]
-			playlistURL =		BASE_URL + playlist.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/@href")[0]
-			playlistThumbnail =	playlist.xpath("./div/div[contains(@class, 'linkWrapper')]/img[contains(@class, 'largeThumb')]/@data-mediumthumb")[0]
+		if (playlist["isEmpty"] == False):
 			
 			# Add a menu item for the playlist
-			listPlaylistsMenuItems[playlistTitle] = {'function':BrowseVideos, 'functionArgs':{'url':playlistURL}, 'directoryObjectArgs':{'thumb':playlistThumbnail}}
+			# TODO: I am currently using the playlist title as a key, however these aren't guarenteed to be unique. 
+			listPlaylistsMenuItems[playlist["title"]] = {
+				'function':			BrowseVideos,
+				'functionArgs':			{'url': BASE_URL + playlist["url"]},
+				'directoryObjectArgs':	{'thumb': playlist["thumbnail"]}
+			}
 	
 	# There is a slight change that this will break... If the number of playlists returned in total is divisible by MAX_PLAYLISTS_PER_PAGE with no remainder, there could possibly be no additional page after. This is unlikely though and I'm too lazy to handle it.
 	if (len(playlists) == MAX_PLAYLISTS_PER_PAGE):
