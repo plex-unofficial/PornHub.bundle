@@ -10,12 +10,12 @@ def GetVideoMetaDataJSON(htmlElement = None, url = None):
 	# Get the HTML of the site
 	if (htmlElement is None):
 		htmlElement =		HTML.ElementFromURL(url)
-	
+
 	htmlString =	HTML.StringFromElement(htmlElement)
-	
+
 	# Search for the video metadata JSON string
 	videoMetaDataString = Regex(PH_VIDEO_METADATA_JSON_REGEX).search(htmlString)
-	
+
 	if (videoMetaDataString):
 		# If found, convert the JSON string to an object
 		return json.loads(videoMetaDataString.group(1))
@@ -25,17 +25,17 @@ def GetVideoMetaDataJSON(htmlElement = None, url = None):
 def GetVideos(url):
 	# Create an empty list to hold the categories
 	videos = []
-	
+
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
-	
+
 	# Use xPath to extract a list of divs that contain videos
 	videoElements = html.xpath("//li[contains(@class,'videoblock')]")
-	
+
 	# This piece of code is ridiculous. From the best I can gether, the poorly formed HTML on PornHub makes xPath choke at 123 videos. So I rounded it down to 120 and limited the videos to that. This should only affect playlists, but it is a really ridiculous problem
 	if (len(videoElements) >= 120):
 		videoElements =	videoElements[0:120]
-	
+
 	# Loop through the videos in the page
 	for videoElement in videoElements:
                 try:
@@ -79,32 +79,32 @@ def GetVideos(url):
 def GetVideoThumbnailURLs(url):
 	# Create an empty list to hold the thumbnail URLs
 	thumbnailURLs = []
-	
+
 	# Get the video meta data
 	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(url=url)
-	
+
 	if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"] != False):
-		
+
 		videoThumbnailsCount =	Regex("/S{(\d+)}.jpg").search(videoMetaData["thumbs"]["urlPattern"])
-		
+
 		if (videoThumbnailsCount):
 			videoThumbnailsCountString = videoThumbnailsCount.group(1)
-			
+
 			for i in range(int(videoThumbnailsCountString) + 1):
 				thumbnailURLs.append(videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg"))
-	
+
 	return thumbnailURLs
 
 def GetRelatedVideos(url):
 	# Create an empty list to hold the relatedVideos
 	relatedVideos = []
-	
+
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
-	
+
 	# Use xPath to extract the related videos
-	relatedVideoElements = html.xpath("//div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
-	
+	relatedVideoElements = html.xpath("//ul[@id='relatedVideosCenter' or @id='relateRecommendedItems']//li[contains(@class, 'videoblock')]/div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+
 	# Loop through related videos
 	for relatedVideoElement in relatedVideoElements:
 		relatedVideos.append({
@@ -112,19 +112,19 @@ def GetRelatedVideos(url):
 			'url':		relatedVideoElement.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0],
 			'thumbnail':	relatedVideoElement.xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
 		})
-	
+
 	return relatedVideos
 
 def GetPlaylistsContainingVideo(url):
 	# Create an empty list to hold the playlists
 	playlists = []
-	
+
 	# Get the HTML of the site
 	html = HTML.ElementFromURL(url)
-	
+
 	# Use xPath to extract the playlists
 	playlistElements = html.xpath("//ul[contains(@class, 'playlist-listingSmall')]/li/div[contains(@class, 'wrap')]")
-	
+
 	# Loop through playlists
 	for playlistElement in playlistElements:
 		playlists.append({
@@ -132,45 +132,45 @@ def GetPlaylistsContainingVideo(url):
 			'url':		playlistElement.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a/@href")[0],
 			'thumbnail':	playlistElement.xpath("./div[contains(@class, 'linkWrapper')]/img/@data-mediumthumb")[0]
 		})
-	
+
 	return playlists
 
 def GetVideoActions(url):
 	# Create an empty list to hold the actions
 	actions = []
-	
+
 	# Get the video meta data
 	videoMetaData = SharedCodeService.PHCommon.GetVideoMetaDataJSON(url=url)
-	
+
 	if (videoMetaData and videoMetaData["actionTags"]):
 		actionTags = videoMetaData["actionTags"].split(",")
-		
+
 		for actionTag in actionTags:
 			actionSegments =	actionTag.split(":")
-			
+
 			actions.append({
 				'title':		actionSegments[0],
 				'timestamp':	time.strftime('%H:%M:%S', time.gmtime(int(actionSegments[1])))
 			})
-	
+
 	return actions
 
 # I stole this function from http://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python. It works.
 def AddURLParameters (url, params):
-	
+
 	urlParts =	list(urlparse.urlparse(url))
-	
+
 	urlQuery =	dict(urlparse.parse_qsl(urlParts[4]))
 	urlQuery.update(params)
-	
+
 	# So... PornHub requires that it's query string parameters are set in the right order... for some reason. This piece of code handles that. It's retarded, but it has to be done
 	urlQueryOrder = ['c', 'channelSearch', 'search', 'username', 'o', 't', 'page']
-	
+
 	urlQueryOrdered = OrderedDict()
-	
+
 	for i in urlQueryOrder:
 		if i in urlQuery:
-			urlQueryOrdered[i] = urlQuery[i] 
+			urlQueryOrdered[i] = urlQuery[i]
 
 	urlParts[4] = urllib.urlencode(urlQueryOrdered)
 
@@ -183,5 +183,5 @@ def FormatStringForSearch(query, delimiter):
 	query = query.replace('  ',' ')
 	query = query.strip(' \t\n\r')
 	query = delimiter.join(query.split())
-	
+
 	return query
