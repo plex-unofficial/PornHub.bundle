@@ -2,22 +2,22 @@ import PHCommon
 
 PH_POTENTIAL_RESOLUTIONS =		["1080", "720", "480", "240", "180"]
 
-PH_VIDEO_URL_REGEX =			"var player_quality_%sp = '([^']+)'"
+PH_VIDEO_URL_REGEX =			'"quality":"%s","videoUrl":"([^\"]+)"'
 
 def NormalizeURL(url):
 
 	return url
 
 def MetadataObjectForURL(url):
-	
+
 	# Get the HTML string from the given URL
 	html =		HTML.ElementFromURL(url)
-	
+
 	# Get the video meta data
 	videoMetaData = PHCommon.GetVideoMetaDataJSON(htmlElement=html)
-	
+
 	if (videoMetaData):
-		
+
 		return VideoClipObject(
 			title =		videoMetaData["video_title"],
 			summary =		videoMetaData["video_title"],
@@ -41,22 +41,22 @@ def MetadataObjectForURL(url):
 
 @deferred
 def MediaObjectsForURL(url):
-	
+
 	# The list of MediaObjects to be returned
 	mediaObjects =		[]
-	
+
 	# Get the HTML string from the given URL
 	html =		HTML.ElementFromURL(url)
 	htmlString =	HTML.StringFromElement(html)
-	
+
 	# Get the video meta data
 	videoMetaData = PHCommon.GetVideoMetaDataJSON(htmlElement=html)
-	
+
 	# Loop through all potential resolutions
 	for resolution in PH_POTENTIAL_RESOLUTIONS:
 		# Search for the video URL string
 		video = Regex(PH_VIDEO_URL_REGEX % resolution).search(htmlString)
-		
+
 		# If video with the given resolution is found, add it to the list
 		if video:
 			
@@ -69,18 +69,18 @@ def MediaObjectsForURL(url):
 				optimized_for_streaming =	True if Client.Product not in ['Plex Web'] else False,
 				parts = [
 					PartObject(
-						key =	video.group(1)
+						key =	video.group(1).replace('\/', '/')
 					)
 				]
 			)
-			
+
 			# Check to see if extra metadata is available
 			if videoMetaData:
 				mediaObject.duration =		int(videoMetaData["video_duration"]) * 1000
-			
+
 			mediaObjects.append(mediaObject)
-	
-	
+
+
 	return mediaObjects
-	
+
 	raise Ex.MediaNotAvailable
