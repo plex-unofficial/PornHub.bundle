@@ -6,7 +6,7 @@ def GetPlaylists(url):
 	html = HTML.ElementFromURL(url)
 	
 	# Use xPath to extract a list of playlists
-	playlistElements = html.xpath("//ul[contains(@class, 'user-playlist')]/li[contains(@id, 'playlist')]")
+	playlistElements = html.xpath("//ul[contains(@class, 'playlist-listing')]/li[contains(@id, 'playlist')]")
 	
 	# Loop through all playlists
 	for playlistElement in playlistElements:

@@ -6,7 +6,7 @@ def GetCategories(url):
 	html = HTML.ElementFromURL(url)
 	
 	# Use xPath to extract a list of catgegories
-	categoryElements = html.xpath("//div[@id='categoriesStraightImages']/ul[contains(@class, 'categories-list')]/li/div")
+	categoryElements = html.xpath("//li[contains(@class, 'cat_pic')]/div")
 	
 	# Loop through all categories
 	for categoryElement in categoryElements:

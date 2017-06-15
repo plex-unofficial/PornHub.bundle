@@ -1,6 +1,6 @@
 from PHCommon import *
 
-PH_CATEGORIES_URL =				BASE_URL + '/categories'
+PH_CATEGORIES_URL =				BASE_URL + AREA + '/categories'
 PH_CATEGORIES_ALPHABETICAL_URL =	PH_CATEGORIES_URL + '?o=al'
 
 @route(ROUTE_PREFIX + '/categories')

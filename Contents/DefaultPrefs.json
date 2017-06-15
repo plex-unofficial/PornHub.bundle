@@ -14,6 +14,13 @@
 		"default":	"default.png"
 	},
 	{
+		"id":		"area",
+		"label":	"Area",
+		"type":	"enum",
+		"values":	["straight", "gay"],
+		"default":	"gay"
+	},
+	{
 		"id":		"videoMenuShowThumbnails",
 		"label":	"Video Menu - Show Thumbnails",
 		"type":	"bool",

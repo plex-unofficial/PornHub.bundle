@@ -1,6 +1,6 @@
 from PHCommon import *
 
-PH_PLAYLISTS_URL =			BASE_URL + '/playlists'
+PH_PLAYLISTS_URL =			BASE_URL + AREA + '/playlists'
 PH_PLAYLIST_URL =			BASE_URL + '/playlist'
 
 MAX_PLAYLISTS_PER_PAGE =	36

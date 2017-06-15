@@ -1,10 +1,15 @@
 from collections import OrderedDict
 
 ROUTE_PREFIX =				'/video/pornhub'
-
 BASE_URL =				'http://pornhub.com'
+AREA = ""
+Log("Prefs['area'] is " + Prefs['area'])
+if Prefs["area"] == 'gay':
+	AREA = 			'/gay'
+
 PH_VIDEO_URL =				BASE_URL + '/video'
-PH_VIDEO_SEARCH_URL =		PH_VIDEO_URL + '/search?search=%s'
+PH_VIDEO_BROWSE_URL =	   BASE_URL + AREA + '/video'
+PH_VIDEO_SEARCH_URL =		BASE_URL + AREA + '/video/search?search=%s'
 
 PH_USER_HOVER_URL =		BASE_URL + '/user/hover?id=%s'
 
@@ -48,7 +53,7 @@ PORNSTAR_VIDEOS_SORT_ORDERS = OrderedDict([
 ])
 
 @route(ROUTE_PREFIX + '/videos/browse')
-def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOrders = SORT_ORDERS):
+def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_BROWSE_URL, sortOrders = SORT_ORDERS):
 
 	# If sorting channels, use a different dictionary of sort orders
 	if ("/channels/" in url):
@@ -68,7 +73,7 @@ def BrowseVideos(title=L("DefaultBrowseVideosTitle"), url = PH_VIDEO_URL, sortOr
 	return GenerateMenu(title, browseVideosMenuItems)
 
 @route(ROUTE_PREFIX + '/videos/list')
-def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE_PAGE_ONE):
+def ListVideos(title=L("DefaultListVideosTitle"), url=PH_VIDEO_BROWSE_URL, page=1, pageLimit = MAX_VIDEOS_PER_PAGE_PAGE_ONE):
 
 	# Create the object to contain all of the videos
 	oc = ObjectContainer(title2 = title)
@@ -213,7 +218,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 		relatedVideos = html.xpath("//ul[@id='relatedVideosCenter' or @id='relateRecommendedItems']//li[contains(@class, 'videoblock')]/div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
 
 		if (len(relatedVideos) > 0):
-			relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+			relatedVideosThumb =	relatedVideos[0].xpath("./div/a/img/@data-mediumthumb")[0]
 
 			# Add the Related Videos Directory Object
 			oc.add(DirectoryObject(

@@ -1,6 +1,6 @@
 from PHCommon import *
 
-PH_PORNSTARS_URL =			BASE_URL + '/pornstars'
+PH_PORNSTARS_URL =			BASE_URL + AREA + '/pornstars'
 PH_PORNSTARS_SEARCH_URL =	PH_PORNSTARS_URL + '/search?search=%s'
 
 MAX_PORNSTARS_PER_PAGE =	28

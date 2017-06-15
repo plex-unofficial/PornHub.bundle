@@ -1,7 +1,7 @@
 from PHCommon import *
 
-PH_DISCOVER_MEMBERS_URL =	BASE_URL + '/user/discover'
-PH_SEARCH_MEMBERS_URL =		BASE_URL + '/user/search?username=%s'
+PH_DISCOVER_MEMBERS_URL =	BASE_URL + AREA + '/user/discover'
+PH_SEARCH_MEMBERS_URL =		BASE_URL + AREA + '/user/search?username=%s'
 
 # Only the Members search results page has 42 results. The other Member pages have 48 results, but don't feature pagination
 PH_MAX_MEMBERS_PER_PAGE =					42

@@ -8,11 +8,5 @@
 	<string>2</string>
 	<key>PlexClientPlatforms</key>
 	<string>*</string>
-	<key>PlexPluginDebug</key>
-    <array>
-        <!-- possible values are 0 and 1 -->
-        <!-- Setting it to "1" rather than "0" turns on debug logging -->
-        <string>1</string>
-    </array>
 </dict>
 </plist>

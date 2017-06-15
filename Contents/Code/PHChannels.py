@@ -1,6 +1,6 @@
 from PHCommon import *
 
-PH_CHANNELS_URL =		BASE_URL + '/channels'
+PH_CHANNELS_URL =		BASE_URL + AREA + '/channels'
 PH_CHANNEL_SEARCH_URL =	PH_CHANNELS_URL + '/search?channelSearch=%s'
 MAX_CHANNELS_PER_PAGE =	36
 
