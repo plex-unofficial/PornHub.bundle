@@ -1,0 +1,36 @@
+PH_PORNSTAR_HOVER_URL =		'http://pornhub.com' + '/pornstar/hover?id=%s'
+
+def GetPornStars(url):
+	# Create an empty list to hold the porn stars
+	pornStars = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract <li> which are inside an <ul> that has more than 40 <li> children
+	# Best not to go under 30, as menus can have a lot of children and use the same structure
+	# than lists.
+	# Current markup for pornstar list: //ul/li/div/a/img 
+	pornStarElements = html.xpath("//ul[count(li) > 40]/li")
+	
+	# Loop through all channels
+	for pornStarElement in pornStarElements:
+		# (inside li) Find the img
+		
+		# Use xPath to extract porn star details, and add the porn star to the list
+		pornStars.append({
+			'name':		pornStarElement.xpath("./div/a/img/@alt")[0],
+			'url':		pornStarElement.xpath("./div/a/@href")[0],
+			'thumbnail':	pornStarElement.xpath("./div/a/img/@src")[0]
+		})
+	
+	return pornStars
+
+def GetPornStarHoverMetaData(pornStarID):
+	# Fetch the porn star hover HTML
+	pornStarHoverHTML = HTML.ElementFromURL(PH_PORNSTAR_HOVER_URL % pornStarID)
+	
+	return {
+		'name':		pornStarHoverHTML.xpath("//div[@id='psInfoContainer']/div[@id='psBoxName']/text()")[0],
+		'thumbnail':	pornStarHoverHTML.xpath("//div[@id='psBoxPictureContainer']/img/@src")[0]
+	}

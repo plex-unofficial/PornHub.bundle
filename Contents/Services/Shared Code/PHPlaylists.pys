@@ -1,0 +1,31 @@
+def GetPlaylists(url):
+	# Create an empty list to hold the playlists
+	playlists = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of playlists
+	playlistElements = html.xpath("//ul[contains(@class, 'playlist-listing')]/li[contains(@id, 'playlist')]")
+	
+	# Loop through all playlists
+	for playlistElement in playlistElements:
+		
+		# Use xPath to extract playlist details
+		playlist = {
+			'title':	playlistElement.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/text()")[0],
+			'url':	playlistElement.xpath("./div/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class, 'title')]/a[contains(@class, 'title')]/@href")[0]
+		}
+		
+		# Make sure Playlist isn't empty
+		if (len(playlistElement.xpath(".//span[contains(@class,'playlist-videos')]/span[contains(@class,'number')]/span[text()='0']")) < 1):
+			playlist["isEmpty"] =		False
+			playlist["thumbnail"] =	playlistElement.xpath("./div/div[contains(@class, 'linkWrapper')]/img[contains(@class, 'largeThumb')]/@data-mediumthumb")[0]
+		else:
+			playlist["isEmpty"] =		True
+			playlist["thumbnail"] =	None
+		
+		# Add the playlist to the list
+		playlists.append(playlist)
+	
+	return playlists
