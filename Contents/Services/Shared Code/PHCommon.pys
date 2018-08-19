@@ -103,14 +103,14 @@ def GetRelatedVideos(url):
 	html = HTML.ElementFromURL(url)
 
 	# Use xPath to extract the related videos
-	relatedVideoElements = html.xpath("//ul[@id='relatedVideosCenter' or @id='relateRecommendedItems']//li[contains(@class, 'videoblock')]/div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
+	relatedVideoElements = html.xpath("//ul[@id='relatedVideosCenter' or @id='relateRecommendedItems']//li[contains(@class, 'videoblock')]/div[contains(@class, 'wrap')]")
 
 	# Loop through related videos
 	for relatedVideoElement in relatedVideoElements:
 		relatedVideos.append({
-			'title':		relatedVideoElement.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/text()")[0],
-			'url':		relatedVideoElement.xpath("./a/div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0],
-			'thumbnail':	relatedVideoElement.xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+			'title':		relatedVideoElement.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/text()")[0],
+			'url':		relatedVideoElement.xpath("./div[contains(@class, 'thumbnail-info-wrapper')]/span[contains(@class,'title')]/a/@href")[0],
+			'thumbnail':	relatedVideoElement.xpath("./div[contains(@class, 'phimage')]/div[contains(@class, 'img')]/a/img/@data-mediumthumb")[0]
 		})
 
 	return relatedVideos
