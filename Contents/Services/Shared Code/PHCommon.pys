@@ -85,13 +85,13 @@ def GetVideoThumbnailURLs(url):
 
 	if (videoMetaData["thumbs"] and videoMetaData["thumbs"]["urlPattern"] != False):
 
-		videoThumbnailsCount =	Regex("/S{(\d+)}.jpg").search(videoMetaData["thumbs"]["urlPattern"])
+		videoThumbnailsCount =	Regex("S{(\d+)}.jpg$").search(videoMetaData["thumbs"]["urlPattern"])
 
 		if (videoThumbnailsCount):
 			videoThumbnailsCountString = videoThumbnailsCount.group(1)
 
 			for i in range(int(videoThumbnailsCountString) + 1):
-				thumbnailURLs.append(videoMetaData["thumbs"]["urlPattern"].replace("/S{" + videoThumbnailsCountString + "}.jpg", "/S" + str(i) + ".jpg"))
+				thumbnailURLs.append(videoMetaData["thumbs"]["urlPattern"].replace("S{" + videoThumbnailsCountString + "}.jpg", "S" + str(i) + ".jpg"))
 
 	return thumbnailURLs
 
