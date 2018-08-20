@@ -213,7 +213,7 @@ def VideoMenu(url, title=L("DefaultVideoMenuTitle"), duration=0):
 		relatedVideos = html.xpath("//ul[@id='relatedVideosCenter' or @id='relateRecommendedItems']//li[contains(@class, 'videoblock')]/div[contains(@class, 'wrap')]/div[contains(@class, 'phimage')]")
 
 		if (len(relatedVideos) > 0):
-			relatedVideosThumb =	relatedVideos[0].xpath("./a/div[contains(@class, 'img')]/img/@data-mediumthumb")[0]
+			relatedVideosThumb =	relatedVideos[0].xpath("./div[contains(@class, 'img')]/a/img/@data-mediumthumb")[0]
 
 			# Add the Related Videos Directory Object
 			oc.add(DirectoryObject(

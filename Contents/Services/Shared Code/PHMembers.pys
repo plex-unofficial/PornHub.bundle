@@ -1,4 +1,5 @@
 PH_MEMBER_HOVER_URL =		'http://pornhub.com' + '/user/hover?id=%s'
+PH_MEMBER_URL =				'/users/%s'
 
 def GetMemberSortOrders(url):
 	# Create an empty list to hold the sort orders
@@ -29,16 +30,16 @@ def GetMembers(url):
 	html = HTML.ElementFromURL(url)
 	
 	# Use xPath to extract a list of members
-	memberElements = html.xpath("//ul[contains(@class, 'userWidgetWrapperGrid')]/li")
+	memberElements = html.xpath("//ul[contains(@class, 'userWidgetWrapperGrid')]/li/div[contains(@class, 'large-avatar')]/*[contains(@class, 'userLink')]/img")
 	
 	# Loop through all members
 	for memberElement in memberElements:
 		
 		# Use xPath to extract member details, and add the member to the list
 		members.append({
-			'title':		memberElement.xpath("./div[contains(@class, 'usernameWrap')]/a[contains(@class, 'usernameLink')]/text()")[0],
-			'url':		memberElement.xpath("./div[contains(@class, 'usernameWrap')]/a[contains(@class, 'usernameLink')]/@href")[0],
-			'thumbnail':	memberElement.xpath("./div[contains(@class, 'large-avatar')]/a[contains(@class, 'userLink')]/img/@src")[0]
+			'title':		memberElement.xpath("./@title")[0],
+			'url':		PH_MEMBER_URL % memberElement.xpath("./@title")[0],
+			'thumbnail':	memberElement.xpath("./@src")[0]
 		})
 	
 	return members
