@@ -38,42 +38,42 @@ def GetVideos(url):
 
 	# Loop through the videos in the page
 	for videoElement in videoElements:
-                try:
-        		# Use xPath to extract video details
-        		video = {
-        			'title':		videoElement.xpath(".//span[@class='title']/a/text()")[0],
-        			'url':		videoElement.xpath(".//a/@href")[0],
-        			'thumbnail':	videoElement.xpath(".//img/@data-mediumthumb")[0]
-        		}
+		try:
+			# Use xPath to extract video details
+			video = {
+				'title':		videoElement.xpath(".//span[@class='title']/a/text()")[0],
+				'url':		videoElement.xpath(".//a/@href")[0],
+				'thumbnail':	videoElement.xpath(".//img/@data-mediumthumb")[0]
+			}
 
-        		# Get the duration of the video
-        		durationString =	videoElement.xpath(".//var[@class='duration']/text()")[0]
+			# Get the duration of the video
+			durationString =	videoElement.xpath(".//var[@class='duration']/text()")[0]
 
-        		# Split it into a list separated by colon
-        		durationArray =	durationString.split(":")
+			# Split it into a list separated by colon
+			durationArray =	durationString.split(":")
 
-        		if (len(durationArray) == 2):
-        			# Dealing with MM:SS
-        			minutes =	int(durationArray[0])
-        			seconds =	int(durationArray[1])
+			if (len(durationArray) == 2):
+				# Dealing with MM:SS
+				minutes =	int(durationArray[0])
+				seconds =	int(durationArray[1])
 
-        			video["duration"] = (minutes*60 + seconds) * 1000
+				video["duration"] = (minutes*60 + seconds) * 1000
 
-        		elif (len(durationArray) == 3):
-        			# Dealing with HH:MM:SS... PornHub doesn't do this, but I'll keep it as a backup anyways
-        			hours =	int(durationArray[0])
-        			minutes =	int(durationArray[1])
-        			seconds =	int(durationArray[2])
+			elif (len(durationArray) == 3):
+				# Dealing with HH:MM:SS... PornHub doesn't do this, but I'll keep it as a backup anyways
+				hours =	int(durationArray[0])
+				minutes =	int(durationArray[1])
+				seconds =	int(durationArray[2])
 
-        			video["duration"] = (hours*3600 + minutes * 60 + seconds) * 1000
-        		else:
-        			# Set a default duration of 0
-        			video["duration"] = 0
+				video["duration"] = (hours*3600 + minutes * 60 + seconds) * 1000
+			else:
+				# Set a default duration of 0
+				video["duration"] = 0
 
-        		videos.append(video)
-	        except:
-	               Log("Error encountered with one of the videos... skipping.")
-	               pass
+			videos.append(video)
+		except:
+				Log("Error encountered with one of the videos... skipping.")
+				pass
 	return videos
 
 def GetVideoThumbnailURLs(url):
