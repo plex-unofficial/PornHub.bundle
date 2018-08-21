@@ -1,0 +1,82 @@
+[
+	{
+		"id":		"channelBackgroundArt",
+		"label":	"Background Art",
+		"type":	"enum",
+		"values":	["default.jpg", "original.png", "alternate-1.jpg", "alternate-2.jpg", "stealth.png"],
+		"default":	"default.jpg"
+	},
+	{
+		"id":		"channelIconArt",
+		"label":	"Icon Art",
+		"type":	"enum",
+		"values":	["default.png", "stealth.png"],
+		"default":	"default.png"
+	},
+	{
+		"id":		"videoMenuShowThumbnails",
+		"label":	"Video Menu - Show Thumbnails",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"videoMenuShowUploader",
+		"label":	"Video Menu - Show Uploader",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"videoMenuShowPornStars",
+		"label":	"Video Menu - Show Porn Stars",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"videoMenuShowRelatedVideos",
+		"label":	"Video Menu - Show Related Videos",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"videoMenuShowPlaylists",
+		"label":	"Video Menu - Show Playlists",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"videoMenuShowAction",
+		"label":	"Video Menu - Show Action",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"memberMenuAccurateVideos",
+		"label":	"Member Menu - Accurate Videos",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"memberMenuAccuratePlaylists",
+		"label":	"Member Menu - Accurate Playlists",
+		"type":	"bool",
+		"default":	"true",
+	},
+	{
+		"id":		"memberMenuAccurateSubscribers",
+		"label":	"Member Menu - Accurate Subscribers",
+		"type":	"bool",
+		"default":	"false",
+	},
+	{
+		"id":		"memberMenuAccurateMemberSubscriptions",
+		"label":	"Member Menu - Accurate Member Subscriptions",
+		"type":	"bool",
+		"default":	"false",
+	},
+	{
+		"id":		"memberMenuAccurateFriends",
+		"label":	"Member Menu - Accurate Friends",
+		"type":	"bool",
+		"default":	"true",
+	}
+]

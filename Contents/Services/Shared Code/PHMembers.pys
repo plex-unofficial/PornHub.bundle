@@ -1,0 +1,115 @@
+PH_MEMBER_HOVER_URL =		'http://pornhub.com' + '/user/hover?id=%s'
+PH_MEMBER_URL =				'/users/%s'
+
+def GetMemberSortOrders(url):
+	# Create an empty list to hold the sort orders
+	sortOrders = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of sort orders
+	sortOrderElements = html.xpath("//div[contains(@class, 'members-page')]/div[contains(@class, 'sectionTitle')]")
+	
+	# Loop through all sort orders
+	for sortOrderElement in sortOrderElements:
+		
+		# Use xPath to extract sort order details, and add the sort order to the list
+		sortOrders.append({
+			'title':	sortOrderElement.xpath("./h2/text()")[0],
+			'url':	sortOrderElement.xpath("./div[contains(@class, 'filters')]/a/@href")[0]
+		})
+	
+	return sortOrders
+
+def GetMembers(url):
+	# Create an empty list to hold the members
+	members = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of members
+	memberElements = html.xpath("//ul[contains(@class, 'userWidgetWrapperGrid')]/li/div[contains(@class, 'large-avatar')]/*[contains(@class, 'userLink')]/img")
+	
+	# Loop through all members
+	for memberElement in memberElements:
+		
+		# Use xPath to extract member details, and add the member to the list
+		members.append({
+			'title':		memberElement.xpath("./@title")[0],
+			'url':		PH_MEMBER_URL % memberElement.xpath("./@title")[0],
+			'thumbnail':	memberElement.xpath("./@src")[0]
+		})
+	
+	return members
+
+def GetMemberChannels(url):
+	# Create an empty list to hold the channels
+	channels = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of channels
+	channelElements = html.xpath("//div[contains(@class, 'sectionWrapper')]/div[contains(@class, 'topheader')]")
+	
+	for channelElement in channelElements:
+		# Use xPath to extract channel details, and add the channel to the list
+		channels.append({
+			'title':		channelElement.xpath("./div[contains(@class, 'floatLeft')]/div[contains(@class, 'title')]/a/text()")[0],
+			'url':		channelElement.xpath("./div[contains(@class, 'floatLeft')]/div[contains(@class, 'title')]/a/@href")[0] + "/videos",
+			'thumbnail':	channelElement.xpath("./div[contains(@class, 'avatarWrapper')]/a/img/@src")[0]
+		})
+	
+	return channels
+
+def GetMemberSubscribedChannels(url):
+	# Create an empty list to hold the channels
+	channels = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of subscribed channels
+	channelElements = html.xpath("//div[contains(@class, 'channelSubWidgetContainer')]/ul/li[contains(@class, 'channelSubChannelWig')]")
+	
+	for channelElement in channelElements:
+		# Use xPath to extract channel details, and add the channel to the list
+		channels.append({
+			'title':		channelElement.xpath("./div/div[contains(@class, 'wtitle')]/a/text()")[0],
+			'url':		channelElement.xpath("./div/div[contains(@class, 'wtitle')]/a/@href")[0] + "/videos",
+			'thumbnail':	channelElement.xpath("./div/div/a/img/@src")[0]
+		})
+	
+	return channels
+
+def GetMemberSubscribedPornStars(url):
+	# Create an empty list to hold the porn stars
+	pornStars = []
+	
+	# Get the HTML of the page
+	html = HTML.ElementFromURL(url)
+	
+	# Use xPath to extract a list of subscribed porn stars
+	pornStarElements = html.xpath("//ul[contains(@class,'pornStarGrid')]/li/div[contains(@class,'user-flag')]/div[contains(@class,'avatarWrap')]/a")
+	
+	for pornStarElement in pornStarElements:
+		# Use xPath to extract porn star details, and add the porn star to the list
+		pornStars.append({
+			'title':		pornStarElement.xpath("./img/@alt")[0],
+			'url':		pornStarElement.xpath("./@href")[0],
+			'thumbnail':	pornStarElement.xpath("./img/@src")[0]
+		})
+	
+	return pornStars
+
+def GetMemberHoverMetaData(memberID):
+	# Fetch the porn star hover HTML
+	memberHoverHTML = HTML.ElementFromURL(PH_MEMBER_HOVER_URL % memberID)
+	
+	return {
+		'name':		memberHoverHTML.xpath("//div[contains(@class, 'avatarUserInfo')]/a[contains(@class,'username')]/text()")[0],
+		'url':		memberHoverHTML.xpath("//div[contains(@class, 'avatarUserInfo')]/a[contains(@class,'username')]/@href")[0],
+		'thumbnail':	memberHoverHTML.xpath("//div[contains(@class, 'avatarIcon')]/a/img/@src")[0]
+	}
